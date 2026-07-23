@@ -1,0 +1,26 @@
+{
+  "name": "quantitative-trading-dashboard",
+  "version": "1.0.0",
+  "description": "Deterministic quantitative trading analysis platform. TradingView is the visualisation layer; all analysis is computed independently.",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "node tests/run-all.js",
+    "test:backtest": "node -e \"require('./tests/phase9-backtest.test.js').run().then(r=>{var f=r.filter(x=>!x.ok);console.log((r.length-f.length)+'/'+r.length+' passed');process.exit(f.length?1:0)})\"",
+    "serve": "node tools/serve.js",
+    "verify": "node tests/run-all.js"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  },
+  "comments": {
+    "dependencies": "The analysis engine has ZERO runtime dependencies. It is plain ES5-compatible JavaScript loaded via <script> tags, so it runs from file:// or any static host with no build step.",
+    "devDependencies": "jsdom is required only by tests/phase8-presentation.test.js, which renders the recommendation card in a headless DOM.",
+    "serve": "tools/serve.js is a minimal static server for local testing. Production uses IIS (see web.config)."
+  }
+}
