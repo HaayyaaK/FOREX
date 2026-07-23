@@ -5,6 +5,7 @@
 
 # Dependencies
 node_modules/
+_docs/
 
 # OS / editor cruft
 .DS_Store
