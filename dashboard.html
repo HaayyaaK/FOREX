@@ -1164,15 +1164,15 @@
 
         <!-- Workspace 1: Charts — the chart is the dominant component -->
         <section class="workspace workspace--charts" id="wsPanelCharts" role="tabpanel" aria-label="Charts workspace">
-            <!-- Ticker Bar (top): TradingView ticker-tape widget is mounted here -->
+            <div class="chart-panel">
+                <div class="chart-host" id="chartHost"></div>
+            </div>
+
+            <!-- Ticker Bar (bottom): TradingView ticker-tape widget is mounted here -->
             <div class="ticker-bar">
                 <div class="tradingview-widget-container" id="tickerTape">
                     <div class="tradingview-widget-container__widget"></div>
                 </div>
-            </div>
-
-            <div class="chart-panel">
-                <div class="chart-host" id="chartHost"></div>
             </div>
         </section>
 

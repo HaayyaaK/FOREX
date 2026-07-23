@@ -108,6 +108,7 @@ The project is stateless — no database, no migrations. Roll back by restoring 
 | `PROVIDER_NOT_CONFIGURED` | Missing key in `.env` |
 | Engine scripts 404 under IIS | MIME map missing — confirm `web.config` deployed |
 | `/api/*` 404 under IIS | ARR not installed or proxy not enabled |
+| `/api/*` **500 "URL Rewrite Module Error"** | The proxy rule set `HTTP_X_FORWARDED_*` server variables that were not registered in the apphost `rewrite/allowedServerVariables` list. Either register them or drop the `<serverVariables>` block from the rule (current `web.config` omits it). |
 | CORS rejection | Add the origin to `ALLOWED_ORIGINS`, restart gateway |
 | No volume for forex | Expected — only Binance (crypto) supplies volume |
 
@@ -123,6 +124,20 @@ The project is stateless — no database, no migrations. Roll back by restoring 
 | `PRODUCTION-READINESS.md` | Readiness assessment; §12 covers MTF consensus |
 | `IMPLEMENTATION-NOTES.md` | Change log + Architecture Evolution |
 | `PROXY-REVIEW.md` | Original backend audit |
+
+---
+
+## Recent changes (2026-07-24)
+
+Front-end and hosting polish after the engine milestone:
+
+- **Chart engine:** migrated the chart from the deprecated `tv.js` `new TradingView.widget()` (which froze with no live feed) to the maintained **`embed-widget-advanced-chart.js`** pipeline; added a ticker-tape re-mount watchdog.
+- **`calc.html`** (new): a self-contained trading calculator (Core / Forex / Crypto / Stocks / Futures / Options) merged from the old `tool.html` + `tool2.html` with corrected maths — fixed the liquidation formula, the `calcGreeks` infinite-recursion bug, and pip-value currency conversion. No CDN (vanilla JS + inline-SVG charts). `tool.html`/`tool2.html` removed.
+- **UI:** all emoji/CDN icons replaced with locally hosted **FontAwesome 7**; WCAG-AA brand/action palette; a Save-Profile toggle that gates *all* settings persistence (defaults unless Active); Trade Setup promoted below the hero; interval picker shown only in Keen Eye.
+- **Connection status:** the header chip now proactively probes `/api/v1/health` (green Connected / red Unreachable) instead of a stale "Idle".
+- **Hosting:** enabled the IIS ARR proxy and fixed the rewrite rule (see the 500 "URL Rewrite Module Error" troubleshooting row) so same-origin `/api/*` reaches the gateway; `qt-app.js` now resolves the proxy same-origin on the public domain.
+- **Chrome:** trimmed header / controls / ticker-bar heights; small footer (copyright + disclaimer link); **ticker bar moved to the bottom** of the charts workspace; PWA `site.webmanifest` + favicons wired up.
+- **`disclaimer.html`:** rebuilt for `forex.hayyaak.com` on the dashboard design system — English-only, dark-only.
 
 ---
 
