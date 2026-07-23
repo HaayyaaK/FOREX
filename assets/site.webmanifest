@@ -1,0 +1,62 @@
+{
+  "name": "Keen Eye — Live Market Dashboard",
+  "short_name": "Keen Eye",
+  "description": "Live market charts and deterministic quantitative analysis for forex, metals and crypto.",
+  "start_url": "/dashboard.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f0f1a",
+  "theme_color": "#0f0f1a",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["finance", "business", "productivity"],
+  "icons": [
+    {
+      "src": "/assets/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Trading Calculator",
+      "short_name": "Calculator",
+      "description": "Open the precision trading calculator",
+      "url": "/calc.html",
+      "icons": [{ "src": "/assets/favicon-32x32.png", "sizes": "32x32" }]
+    },
+    {
+      "name": "Disclaimer",
+      "short_name": "Disclaimer",
+      "description": "Read the risk disclaimer",
+      "url": "/disclaimer.html",
+      "icons": [{ "src": "/assets/favicon-32x32.png", "sizes": "32x32" }]
+    }
+  ]
+}

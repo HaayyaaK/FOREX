@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Disclaimer — Keen Eye</title>
+<meta name="theme-color" content="#0f0f1a">
+<link rel="manifest" href="assets/site.webmanifest">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<!-- Locally hosted FontAwesome 7 — no CDN. -->
+<link rel="stylesheet" href="assets/fontawesome-free-7.3.1-web/css/all.min.css">
+<style>
+/* ==========================================================================
+   Shares dashboard.html's design tokens (same dark palette + cyan→indigo brand
+   gradient) so the dashboard and this disclaimer read as one product. English
+   only, dark only — the previous bilingual / dual-theme machinery was removed.
+   Local assets only — no CDN.
+   ========================================================================== */
+:root{
+  color-scheme: dark;
+  --c-bg:#0f0f1a; --c-surface:#12121f; --c-surface-2:#1a1a2e; --c-surface-3:#14142a;
+  --c-border:#2a2a4a; --c-border-soft:#1e1e35;
+  --c-text:#e0e0e0; --c-text-strong:#ffffff; --c-text-dim:#888888;
+  --c-text-faint:#8a8ab2; --c-text-muted:#8a8aa4;
+  --c-brand-1:#22d3ee; --c-brand-2:#818cf8;
+  --c-warn:#ffb020; --c-warn-soft:rgba(255,176,32,0.14);
+  --grad-brand:linear-gradient(90deg,var(--c-brand-1),var(--c-brand-2));
+  --shadow:0 10px 30px rgba(0,0,0,0.35); --hairline:1px;
+  --fs-2xs:clamp(0.62rem,0.56rem+0.18vw,0.72rem);
+  --fs-xs:clamp(0.7rem,0.64rem+0.2vw,0.82rem);
+  --fs-sm:clamp(0.78rem,0.72rem+0.22vw,0.9rem);
+  --fs-md:clamp(0.86rem,0.8rem+0.25vw,1rem);
+  --fs-lg:clamp(1.15rem,0.95rem+0.9vw,1.6rem);
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:22px; --sp-6:28px;
+  --r-sm:6px; --r-md:8px; --r-lg:12px; --r-xl:16px;
+}
+@media (min-resolution:1.5dppx){:root{--hairline:0.5px}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--c-bg); color:var(--c-text);
+  font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+  font-size:var(--fs-md); line-height:1.7; min-height:100vh;
+}
+.wrap{max-width:920px;margin-inline:auto;padding:var(--sp-5) clamp(14px,3vw,32px) 60px}
+
+header.site{display:flex;align-items:center;gap:var(--sp-4);flex-wrap:wrap;padding-block:var(--sp-4) var(--sp-6)}
+.brand{display:flex;align-items:center;gap:var(--sp-3)}
+.brand-mark{
+  inline-size:44px;block-size:44px;border-radius:var(--r-md);flex:none;
+  background:linear-gradient(140deg,var(--c-surface-2),var(--c-surface-3));
+  border:var(--hairline) solid var(--c-border);
+  display:grid;place-items:center;box-shadow:var(--shadow)
+}
+.brand-mark i{font-size:1.25rem;color:var(--c-brand-1)}
+.brand h1{
+  font-size:var(--fs-lg);font-weight:700;line-height:1.15;
+  background:var(--grad-brand);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent
+}
+.brand p{font-size:var(--fs-xs);color:var(--c-text-dim);text-transform:uppercase;letter-spacing:1px}
+
+.back-link{
+  display:inline-flex;align-items:center;gap:var(--sp-2);font-size:var(--fs-sm);font-weight:600;
+  text-decoration:none;color:var(--c-text-muted);padding:var(--sp-2) var(--sp-4);
+  border:var(--hairline) solid var(--c-border);border-radius:var(--r-md);background:var(--c-surface-2);
+  transition:color .2s,border-color .2s;margin-block-end:var(--sp-4)
+}
+.back-link:hover{color:var(--c-brand-1);border-color:var(--c-brand-1)}
+.back-link i{font-size:var(--fs-xs)}
+
+.card{
+  background:var(--c-surface-2);border:var(--hairline) solid var(--c-border);
+  border-radius:var(--r-xl);box-shadow:var(--shadow);padding:clamp(20px,4vw,34px)
+}
+.doc-title{font-size:var(--fs-lg);font-weight:700;color:var(--c-text-strong)}
+.updated{
+  font-size:var(--fs-xs);color:var(--c-text-faint);margin-block:var(--sp-2) var(--sp-5);
+  padding-block-end:var(--sp-4);border-block-end:var(--hairline) solid var(--c-border);
+  display:flex;gap:var(--sp-2);flex-wrap:wrap;align-items:center
+}
+.lead{
+  background:var(--c-warn-soft);border:var(--hairline) solid rgba(255,176,32,0.3);
+  border-radius:var(--r-md);padding:var(--sp-4);font-weight:600;color:var(--c-text-strong);margin-block-end:var(--sp-5)
+}
+h2.sec{
+  font-size:var(--fs-md);font-weight:700;color:var(--c-text-strong);
+  margin-block:var(--sp-6) var(--sp-3);display:flex;align-items:center;gap:var(--sp-3)
+}
+h2.sec::before{content:"";inline-size:5px;block-size:18px;border-radius:3px;background:var(--grad-brand);flex:none}
+p.body{font-size:var(--fs-sm);color:var(--c-text-muted);margin-block-end:var(--sp-3)}
+.callout{
+  background:var(--c-warn-soft);border:var(--hairline) solid rgba(255,176,32,0.3);border-radius:var(--r-md);
+  padding:var(--sp-3) var(--sp-4);color:var(--c-warn);font-weight:600;font-size:var(--fs-sm);
+  margin-block:var(--sp-4);display:flex;align-items:center;gap:var(--sp-2)
+}
+a.inline{color:var(--c-brand-1);text-decoration:none;border-block-end:1px dotted rgba(34,211,238,0.4)}
+a.inline:hover{border-block-end-style:solid}
+footer.site{margin-block-start:var(--sp-6);color:var(--c-text-faint);font-size:var(--fs-xs);text-align:center;line-height:1.6}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true"><i class="fa-solid fa-chart-line"></i></div>
+      <div>
+        <h1>Keen Eye</h1>
+        <p>Disclaimer</p>
+      </div>
+    </div>
+  </header>
+
+  <a class="back-link" href="dashboard.html"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to the dashboard</a>
+
+  <main class="card">
+    <h1 class="doc-title">Disclaimer</h1>
+    <div class="updated"><span>Last updated:</span> <span>2026-07-24</span> <span style="opacity:.6">&middot;</span> <span>Keen Eye &middot; forex.hayyaak.com</span></div>
+
+    <div class="lead">Keen Eye is a market-data visualization and descriptive-analysis tool only — it is not financial advice and not a trade recommendation.</div>
+
+    <h2 class="sec">Nature of the tool</h2>
+    <p class="body">Keen Eye presents descriptive readings of what market data currently shows through technical indicators and a deterministic quantitative engine. It is not an advisory service, and it does not provide financial or investment advice, recommendations, trade signals, or any guidance to buy, sell, or hold.</p>
+    <p class="body">No figure, reading, chart, or text in the tool should be construed as a solicitation or recommendation to buy, sell, or hold any asset. The indicators and composite readings — including any computed entry, take-profit, or stop-loss levels — describe the state of the data at the moment shown, nothing more.</p>
+
+    <h2 class="sec">Not financial advice — use at your own risk</h2>
+    <p class="body">Trading and investing in forex, metals, and cryptocurrencies involve substantial risk, including possible loss of some or all of your capital. Leverage can amplify losses well beyond your initial deposit. Any decision you make is your sole responsibility.</p>
+    <p class="body">You should consult a licensed financial advisor before acting. Your use of the tool and reliance on any information in it are entirely at your own risk.</p>
+    <div class="callout"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Do not make trading or investment decisions based on this tool alone.</div>
+
+    <h2 class="sec">Data sources &amp; accuracy</h2>
+    <p class="body">Live charts and the ticker tape are rendered by third-party TradingView embed widgets. The quantitative analysis is assembled by a proxy gateway from public third-party providers — including Binance, TwelveData, Finnhub, ExchangeRate-API, ECB reference rates via Frankfurter, exchangerate.host, NewsAPI, FRED, the alternative.me Fear &amp; Greed index, blockchain.com, and DefiLlama. This data may be delayed, incomplete, inaccurate, or unavailable.</p>
+    <p class="body">Some instruments use proxy or fallback data that the interface discloses. We make no warranty as to the accuracy, completeness, timeliness, or continued availability of the data, which is provided "as is" and "as available."</p>
+
+    <h2 class="sec">Limitation of liability</h2>
+    <p class="body">To the fullest extent permitted by applicable law, we shall not be liable for any loss or damage of any kind — direct, indirect, incidental, or consequential — arising from the use of, or inability to use, the tool, or from reliance on any information in it.</p>
+
+    <h2 class="sec">Third-party links &amp; services</h2>
+    <p class="body">The tool may display links, logos, or news headlines from external sources. We do not control, endorse, or guarantee the content of these sources; visiting them is subject to their terms and at your own risk.</p>
+
+    <h2 class="sec">Changes to this notice &amp; contact</h2>
+    <p class="body">We may update this Disclaimer at any time; changes take effect upon posting to this page. For any inquiry about this notice or the tool, contact us via <a class="inline" href="https://hayyaak.com">hayyaak.com</a>.</p>
+
+    <footer class="site">An analysis and data-visualization tool only — it does not produce recommendations, trade signals, or financial advice.<br>&copy; <span id="year">2026</span> hayyaak.com &middot; All rights reserved.</footer>
+  </main>
+</div>
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
