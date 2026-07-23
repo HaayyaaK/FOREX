@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Trading Calculator</title>
+    <!-- Locally hosted FontAwesome 7 (icons + self-hosted webfonts). No CDN. -->
+    <link rel="stylesheet" href="assets/fontawesome-free-7.3.1-web/css/all.min.css">
+    <style>
+        /* ==============================================================
+           calc.html — Precision trading calculator.
+           Design system mirrors dashboard.html: same tokens, same dark
+           surface language, same WCAG-verified brand/action gradients.
+           Fully self-contained: no Tailwind, no Google Fonts, no decimal.js,
+           no Chart.js. All maths is vanilla JS; all charts are inline SVG.
+           ============================================================== */
+        :root {
+            color-scheme: dark;
+
+            /* ---- Palette (shared with dashboard.html) ---- */
+            --c-bg: #0f0f1a;
+            --c-surface: #12121f;
+            --c-surface-2: #1a1a2e;
+            --c-surface-3: #14142a;
+            --c-elevated: #23234a;
+            --c-border: #2a2a4a;
+            --c-border-soft: #1e1e35;
+            --c-border-hover: #3a3a5f;
+            --c-text: #e0e0e0;
+            --c-text-strong: #ffffff;
+            --c-text-dim: #888888;
+            --c-text-faint: #8a8ab2;
+            --c-text-muted: #8a8aa4;
+            --c-accent: #7b2ff7;
+            --c-accent-2: #00d4ff;
+
+            /* Brand & action palette (WCAG-AA verified) — same as dashboard. */
+            --c-brand-1:  #22d3ee;   /* cyan  */
+            --c-brand-2:  #818cf8;   /* indigo (light) */
+            --c-action-1: #4f46e5;   /* indigo 600 */
+            --c-action-2: #7c3aed;   /* violet 600 */
+            --grad-brand: linear-gradient(90deg, var(--c-brand-1), var(--c-brand-2));
+            --grad-action: linear-gradient(135deg, var(--c-action-1), var(--c-action-2));
+
+            /* Semantic result tones (shared with the analysis workstation). */
+            --c-bull: #2fd480;  --c-bull-soft: rgba(47, 212, 128, 0.14);
+            --c-bear: #ff5d6c;  --c-bear-soft: rgba(255, 93, 108, 0.14);
+            --c-warn: #ffb020;  --c-warn-soft: rgba(255, 176, 32, 0.14);
+            --c-info: #3aa8ff;  --c-info-soft: rgba(58, 168, 255, 0.14);
+
+            /* ---- Fluid spacing ---- */
+            --sp-1: clamp(2px, 0.25vw, 4px);
+            --sp-2: clamp(4px, 0.5vw, 8px);
+            --sp-3: clamp(7px, 0.85vw, 12px);
+            --sp-4: clamp(10px, 1.25vw, 18px);
+            --sp-5: clamp(14px, 1.75vw, 26px);
+
+            /* ---- Fluid type ---- */
+            --fs-2xs: clamp(0.58rem, 0.52rem + 0.18vw, 0.7rem);
+            --fs-xs:  clamp(0.68rem, 0.62rem + 0.2vw, 0.8rem);
+            --fs-sm:  clamp(0.76rem, 0.7rem + 0.22vw, 0.9rem);
+            --fs-md:  clamp(0.84rem, 0.78rem + 0.25vw, 1rem);
+            --fs-lg:  clamp(1.05rem, 0.88rem + 0.78vw, 1.5rem);
+
+            --r-sm: 4px; --r-md: 6px; --r-lg: 8px;
+            --card-radius: 14px;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+            --hairline: 1px;
+            --control-h: clamp(30px, 1.7rem + 0.8vw, 40px);
+        }
+        @media (min-resolution: 1.5dppx) { :root { --hairline: 0.5px; } }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition-duration: 0.001ms !important; }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { height: 100%; }
+        body {
+            background: var(--c-bg);
+            color: var(--c-text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: var(--fs-md);
+            min-height: 100%;
+            padding-bottom: calc(var(--sp-5) + env(safe-area-inset-bottom, 0px));
+        }
+        .mono { font-family: 'Consolas', 'SFMono-Regular', 'Menlo', monospace; font-variant-numeric: tabular-nums; }
+
+        /* ---------------- Header ---------------- */
+        .header {
+            background: linear-gradient(135deg, var(--c-surface-2) 0%, #16213e 100%);
+            padding: var(--sp-3) var(--sp-5);
+            display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
+            border-bottom: var(--hairline) solid var(--c-border);
+            position: sticky; top: 0; z-index: 50;
+        }
+        .header h1 {
+            font-size: var(--fs-lg); font-weight: 600; line-height: 1.2;
+            background: var(--grad-brand); -webkit-background-clip: text;
+            background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .header h1 .brand-ico {
+            -webkit-text-fill-color: var(--c-brand-1); color: var(--c-brand-1);
+            font-size: 0.9em; margin-right: 0.4em;
+        }
+        .header-sub { font-size: var(--fs-2xs); color: var(--c-text-dim); text-transform: uppercase; letter-spacing: 1px; }
+        .header-actions { display: inline-flex; align-items: center; gap: var(--sp-2); margin-left: auto; }
+        .icon-btn {
+            display: inline-flex; align-items: center; gap: var(--sp-2);
+            height: var(--control-h); padding: 0 var(--sp-3);
+            background: var(--c-surface-2); border: var(--hairline) solid var(--c-border);
+            border-radius: var(--r-md); cursor: pointer; color: var(--c-text);
+            text-decoration: none; font-size: var(--fs-sm); font-family: inherit;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .icon-btn:hover { background: var(--c-elevated); border-color: var(--c-border-hover); }
+        .icon-btn i { color: var(--c-brand-1); }
+
+        /* ---------------- Tabs ---------------- */
+        .tabs {
+            display: flex; flex-wrap: wrap; gap: var(--sp-2);
+            padding: var(--sp-4) var(--sp-5) 0;
+            max-width: 1500px; margin: 0 auto;
+        }
+        .tab-btn {
+            display: inline-flex; align-items: center; gap: var(--sp-2);
+            height: var(--control-h); padding: 0 var(--sp-4);
+            background: var(--c-surface-2); border: var(--hairline) solid var(--c-border);
+            border-radius: var(--r-md); color: var(--c-text-dim); cursor: pointer;
+            font-size: var(--fs-sm); font-family: inherit; font-weight: 600;
+            transition: color 0.2s, background 0.2s, border-color 0.2s;
+        }
+        .tab-btn i { font-size: 0.9em; }
+        .tab-btn:hover { color: var(--c-text); }
+        .tab-btn:focus-visible { outline: 2px solid var(--c-accent-2); outline-offset: 2px; }
+        .tab-btn.active {
+            color: var(--c-text-strong);
+            background: var(--grad-action);
+            border-color: transparent;
+        }
+
+        /* ---------------- Layout ---------------- */
+        .wrap { max-width: 1500px; margin: 0 auto; padding: var(--sp-4) var(--sp-5); }
+        .grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: var(--sp-4); align-items: start;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* ---------------- Card ---------------- */
+        .card {
+            background: var(--c-surface-2); border: var(--hairline) solid var(--c-border);
+            border-radius: var(--card-radius); box-shadow: var(--shadow);
+            padding: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-3);
+        }
+        .card-head { display: flex; align-items: center; gap: var(--sp-3); }
+        .card-ico {
+            width: 34px; height: 34px; flex: 0 0 auto; border-radius: var(--r-md);
+            display: inline-flex; align-items: center; justify-content: center; font-size: 0.95rem;
+        }
+        .card-ico.t-info { background: var(--c-info-soft); color: var(--c-info); }
+        .card-ico.t-bull { background: var(--c-bull-soft); color: var(--c-bull); }
+        .card-ico.t-bear { background: var(--c-bear-soft); color: var(--c-bear); }
+        .card-ico.t-warn { background: var(--c-warn-soft); color: var(--c-warn); }
+        .card-ico.t-ai   { background: rgba(129,140,248,0.16); color: var(--c-brand-2); }
+        .card-title { margin: 0; font-size: var(--fs-md); font-weight: 700; color: var(--c-text-strong); }
+
+        /* ---------------- Inputs ---------------- */
+        .field-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-3); }
+        .field-row.cols-3 { grid-template-columns: repeat(3, 1fr); }
+        .field { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 0; }
+        .field label {
+            font-size: var(--fs-2xs); color: var(--c-text-dim);
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .field input, .field select {
+            width: 100%; height: var(--control-h);
+            background: var(--c-surface); color: var(--c-text-strong);
+            border: var(--hairline) solid var(--c-border); border-radius: var(--r-md);
+            padding: 0 var(--sp-3); font-size: var(--fs-sm);
+            font-family: 'Consolas', 'SFMono-Regular', 'Menlo', monospace;
+            font-variant-numeric: tabular-nums;
+        }
+        .field select { cursor: pointer; appearance: none; -webkit-appearance: none;
+            background-image: linear-gradient(45deg, transparent 50%, var(--c-text-dim) 50%),
+                              linear-gradient(135deg, var(--c-text-dim) 50%, transparent 50%);
+            background-position: calc(100% - 15px) center, calc(100% - 10px) center;
+            background-size: 5px 5px, 5px 5px; background-repeat: no-repeat;
+            padding-right: 26px;
+        }
+        .field input:focus, .field select:focus {
+            outline: none; border-color: var(--c-accent-2);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.12);
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+        /* Long/Short (and generic) segmented toggle */
+        .seg { display: flex; gap: var(--sp-2); }
+        .seg button {
+            flex: 1; height: var(--control-h); border-radius: var(--r-md);
+            background: var(--c-surface); border: var(--hairline) solid var(--c-border);
+            color: var(--c-text-dim); font-size: var(--fs-xs); font-weight: 700;
+            font-family: inherit; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;
+            transition: all 0.15s;
+        }
+        .seg button.on-bull { background: var(--c-bull-soft); color: var(--c-bull); border-color: rgba(47,212,128,0.4); }
+        .seg button.on-bear { background: var(--c-bear-soft); color: var(--c-bear); border-color: rgba(255,93,108,0.4); }
+
+        /* ---------------- Results ---------------- */
+        .results {
+            background: var(--c-surface); border: var(--hairline) solid var(--c-border-soft);
+            border-radius: var(--r-lg); padding: var(--sp-3) var(--sp-4);
+            display: flex; flex-direction: column; gap: var(--sp-2); margin-top: auto;
+        }
+        .res-row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-3); }
+        .res-label { font-size: var(--fs-xs); color: var(--c-text-dim); }
+        .res-val { font-size: var(--fs-sm); font-weight: 600; color: var(--c-text); text-align: right; }
+        .res-row.primary .res-label { color: var(--c-text); font-weight: 600; }
+        .res-row.primary .res-val { font-size: var(--fs-lg); font-weight: 800; }
+        .t-bull-txt { color: var(--c-bull); }
+        .t-bear-txt { color: var(--c-bear); }
+        .t-warn-txt { color: var(--c-warn); }
+        .t-info-txt { color: var(--c-info); }
+        .t-brand-txt { color: var(--c-brand-1); }
+
+        .note { font-size: var(--fs-2xs); color: var(--c-text-faint); line-height: 1.5; }
+        .chart-svg { width: 100%; height: 150px; display: block; margin-top: var(--sp-2); }
+
+        /* Horizontal Risk/Reward bars — compact, so the R:R card matches the
+           height of its chart-less siblings instead of towering over them. */
+        .rr-bars { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-2); }
+        .rr-bar { display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: var(--sp-2); }
+        .rr-bar-lab { font-size: var(--fs-2xs); color: var(--c-text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+        .rr-track { height: 10px; background: var(--c-surface); border: var(--hairline) solid var(--c-border-soft); border-radius: 999px; overflow: hidden; }
+        .rr-fill { height: 100%; border-radius: 999px; transition: width 0.4s ease; }
+        .rr-fill.f-bear { background: var(--c-bear); }
+        .rr-fill.f-bull { background: var(--c-bull); }
+        .rr-bar-val { font-size: var(--fs-2xs); color: var(--c-text); min-width: 54px; text-align: right; }
+
+        .footer {
+            text-align: center; padding: var(--sp-5) var(--sp-4);
+            font-size: var(--fs-2xs); color: #555;
+            border-top: var(--hairline) solid var(--c-border-soft); margin-top: var(--sp-4);
+        }
+        @media (max-width: 520px) {
+            .field-row, .field-row.cols-3 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <h1><i class="fa-solid fa-calculator brand-ico" aria-hidden="true"></i>Trading Calculator</h1>
+        <span class="header-sub">Precision Engine</span>
+        <div class="header-actions">
+            <a class="icon-btn" href="dashboard.html" aria-label="Back to dashboard">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Dashboard
+            </a>
+        </div>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="Calculator categories">
+        <button class="tab-btn active" data-tab="core"    role="tab"><i class="fa-solid fa-layer-group"></i> Core</button>
+        <button class="tab-btn"        data-tab="forex"   role="tab"><i class="fa-solid fa-money-bill-transfer"></i> Forex</button>
+        <button class="tab-btn"        data-tab="crypto"  role="tab"><i class="fa-brands fa-bitcoin"></i> Crypto</button>
+        <button class="tab-btn"        data-tab="stocks"  role="tab"><i class="fa-solid fa-chart-line"></i> Stocks</button>
+        <button class="tab-btn"        data-tab="futures" role="tab"><i class="fa-solid fa-bolt"></i> Futures</button>
+        <button class="tab-btn"        data-tab="options" role="tab"><i class="fa-solid fa-bullseye"></i> Options</button>
+    </nav>
+
+    <main class="wrap">
+
+    <!-- ==================== CORE ==================== -->
+    <section id="tab-core" class="tab-content active">
+        <div class="grid">
+
+            <!-- Position Size -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-info"><i class="fa-solid fa-scale-balanced"></i></span><h3 class="card-title">Position Size</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Account Balance</label><input type="number" id="ps_balance" value="10000"></div>
+                    <div class="field"><label>Risk %</label><input type="number" id="ps_risk" value="1" step="0.1"></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><label>Entry Price</label><input type="number" id="ps_entry" value="150" step="0.01"></div>
+                    <div class="field"><label>Stop Loss</label><input type="number" id="ps_stop" value="145" step="0.01"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Risk Amount</span><span class="res-val mono t-bear-txt" id="ps_riskAmt">—</span></div>
+                    <div class="res-row primary"><span class="res-label">Position Size (units)</span><span class="res-val mono t-info-txt" id="ps_size">—</span></div>
+                    <div class="res-row"><span class="res-label">Position Value</span><span class="res-val mono" id="ps_value">—</span></div>
+                </div>
+            </div>
+
+            <!-- Risk / Reward -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-bull"><i class="fa-solid fa-arrow-trend-up"></i></span><h3 class="card-title">Risk / Reward</h3></div>
+                <div class="field-row cols-3">
+                    <div class="field"><label>Entry</label><input type="number" id="rr_entry" value="150" step="0.01"></div>
+                    <div class="field"><label>Stop</label><input type="number" id="rr_stop" value="145" step="0.01"></div>
+                    <div class="field"><label>Target</label><input type="number" id="rr_target" value="165" step="0.01"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Risk / unit</span><span class="res-val mono t-bear-txt" id="rr_risk">—</span></div>
+                    <div class="res-row"><span class="res-label">Reward / unit</span><span class="res-val mono t-bull-txt" id="rr_reward">—</span></div>
+                    <div class="res-row primary"><span class="res-label">R : R Ratio</span><span class="res-val mono t-info-txt" id="rr_ratio">—</span></div>
+                    <div class="res-row"><span class="res-label">Breakeven Win %</span><span class="res-val mono t-warn-txt" id="rr_be">—</span></div>
+                </div>
+                <div class="rr-bars" aria-hidden="true">
+                    <div class="rr-bar">
+                        <span class="rr-bar-lab">Risk</span>
+                        <div class="rr-track"><div class="rr-fill f-bear" id="rr_riskbar" style="width:0%"></div></div>
+                        <span class="rr-bar-val mono" id="rr_riskval">—</span>
+                    </div>
+                    <div class="rr-bar">
+                        <span class="rr-bar-lab">Reward</span>
+                        <div class="rr-track"><div class="rr-fill f-bull" id="rr_rewardbar" style="width:0%"></div></div>
+                        <span class="rr-bar-val mono" id="rr_rewardval">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profit / Loss -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-warn"><i class="fa-solid fa-coins"></i></span><h3 class="card-title">Profit / Loss</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Entry Price</label><input type="number" id="pl_entry" value="150" step="0.01"></div>
+                    <div class="field"><label>Exit Price</label><input type="number" id="pl_exit" value="165" step="0.01"></div>
+                </div>
+                <div class="field"><label>Position Size (units)</label><input type="number" id="pl_size" value="100"></div>
+                <div class="seg" id="pl_seg">
+                    <button type="button" data-dir="long" class="on-bull">Long</button>
+                    <button type="button" data-dir="short">Short</button>
+                </div>
+                <div class="results">
+                    <div class="res-row primary"><span class="res-label">Gross P&amp;L</span><span class="res-val mono" id="pl_gross">—</span></div>
+                    <div class="res-row"><span class="res-label">Return %</span><span class="res-val mono" id="pl_pct">—</span></div>
+                </div>
+            </div>
+
+            <!-- Break-Even -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-warn"><i class="fa-solid fa-equals"></i></span><h3 class="card-title">Break-Even</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Entry Price</label><input type="number" id="be_entry" value="150" step="0.01"></div>
+                    <div class="field"><label>Commission (per side)</label><input type="number" id="be_comm" value="5" step="0.01"></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><label>Spread / Slippage (per unit)</label><input type="number" id="be_spread" value="0.05" step="0.001"></div>
+                    <div class="field"><label>Position Size (units)</label><input type="number" id="be_size" value="100"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Total Fees</span><span class="res-val mono t-warn-txt" id="be_fees">—</span></div>
+                    <div class="res-row primary"><span class="res-label">Break-Even Price</span><span class="res-val mono t-warn-txt" id="be_price">—</span></div>
+                    <div class="res-row"><span class="res-label">Move Needed</span><span class="res-val mono" id="be_move">—</span></div>
+                </div>
+            </div>
+
+            <!-- Compounding -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-ai"><i class="fa-solid fa-arrow-up-right-dots"></i></span><h3 class="card-title">Compounding</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Initial Capital</label><input type="number" id="cp_capital" value="10000"></div>
+                    <div class="field"><label>Monthly Return %</label><input type="number" id="cp_return" value="5" step="0.1"></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><label>Months</label><input type="number" id="cp_months" value="12"></div>
+                    <div class="field"><label>Monthly Deposit</label><input type="number" id="cp_deposit" value="500"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row primary"><span class="res-label">Final Balance</span><span class="res-val mono t-bull-txt" id="cp_final">—</span></div>
+                    <div class="res-row"><span class="res-label">Total Deposits</span><span class="res-val mono" id="cp_totalDep">—</span></div>
+                    <div class="res-row"><span class="res-label">Total Profit</span><span class="res-val mono t-bull-txt" id="cp_profit">—</span></div>
+                </div>
+            </div>
+
+            <!-- Drawdown Recovery -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-bear"><i class="fa-solid fa-arrow-trend-down"></i></span><h3 class="card-title">Drawdown Recovery</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Peak Balance</label><input type="number" id="dd_peak" value="10000"></div>
+                    <div class="field"><label>Current Balance</label><input type="number" id="dd_current" value="8000"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row primary"><span class="res-label">Drawdown %</span><span class="res-val mono t-bear-txt" id="dd_pct">—</span></div>
+                    <div class="res-row"><span class="res-label">Loss Amount</span><span class="res-val mono t-bear-txt" id="dd_loss">—</span></div>
+                    <div class="res-row"><span class="res-label">Gain Needed to Recover</span><span class="res-val mono t-warn-txt" id="dd_recover">—</span></div>
+                </div>
+                <p class="note">Recovering a drawdown always needs a larger % gain than the % lost — the classic asymmetry of loss.</p>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ==================== FOREX ==================== -->
+    <section id="tab-forex" class="tab-content">
+        <div class="grid">
+
+            <!-- Pip Value -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-info"><i class="fa-solid fa-coins"></i></span><h3 class="card-title">Pip Value</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Pair</label>
+                        <select id="fx_pair">
+                            <option value="EURUSD">EUR/USD</option><option value="GBPUSD">GBP/USD</option>
+                            <option value="USDJPY">USD/JPY</option><option value="AUDUSD">AUD/USD</option>
+                            <option value="USDCAD">USD/CAD</option><option value="USDCHF">USD/CHF</option>
+                        </select>
+                    </div>
+                    <div class="field"><label>Lot Size</label>
+                        <select id="fx_lot">
+                            <option value="0.01">Micro (0.01)</option><option value="0.1">Mini (0.1)</option>
+                            <option value="1" selected>Standard (1)</option><option value="10">10 Lots</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field"><label>Acct per Quote rate (1 if acct = quote ccy)</label><input type="number" id="fx_rate" value="1" step="0.0001"></div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Contract Size</span><span class="res-val mono" id="fx_contract">—</span></div>
+                    <div class="res-row"><span class="res-label">Pip Size</span><span class="res-val mono" id="fx_pipsize">—</span></div>
+                    <div class="res-row"><span class="res-label">Pip Value (quote ccy)</span><span class="res-val mono" id="fx_pipquote">—</span></div>
+                    <div class="res-row primary"><span class="res-label">Pip Value (acct ccy)</span><span class="res-val mono t-info-txt" id="fx_pipval">—</span></div>
+                </div>
+                <p class="note">For USD-quoted pairs (EUR/USD…) 1 std lot ≈ $10/pip. For USD/JPY set the rate to 1÷price (e.g. 1÷150 ≈ 0.0067) to convert into USD.</p>
+            </div>
+
+            <!-- Margin & Leverage -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-warn"><i class="fa-solid fa-shield-halved"></i></span><h3 class="card-title">Margin &amp; Leverage</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Position Size (lots)</label><input type="number" id="mg_lots" value="1" step="0.01"></div>
+                    <div class="field"><label>Leverage</label>
+                        <select id="mg_lev">
+                            <option value="1">1:1</option><option value="10">1:10</option><option value="20">1:20</option>
+                            <option value="50">1:50</option><option value="100">1:100</option>
+                            <option value="200">1:200</option><option value="500" selected>1:500</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><label>Current Price</label><input type="number" id="mg_price" value="1.0850" step="0.0001"></div>
+                    <div class="field"><label>Account Balance</label><input type="number" id="mg_balance" value="10000"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Notional Value</span><span class="res-val mono" id="mg_notional">—</span></div>
+                    <div class="res-row primary"><span class="res-label">Required Margin</span><span class="res-val mono t-warn-txt" id="mg_margin">—</span></div>
+                    <div class="res-row"><span class="res-label">Free Margin</span><span class="res-val mono t-bull-txt" id="mg_free">—</span></div>
+                </div>
+            </div>
+
+            <!-- Swap / Rollover -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-warn"><i class="fa-solid fa-clock-rotate-left"></i></span><h3 class="card-title">Swap / Rollover</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Long Swap (pts/lot/day)</label><input type="number" id="sw_long" value="-2.5" step="0.1"></div>
+                    <div class="field"><label>Short Swap (pts/lot/day)</label><input type="number" id="sw_short" value="1.2" step="0.1"></div>
+                </div>
+                <div class="field-row cols-3">
+                    <div class="field"><label>Lots</label><input type="number" id="sw_lots" value="1" step="0.01"></div>
+                    <div class="field"><label>Days Held</label><input type="number" id="sw_days" value="5"></div>
+                    <div class="field"><label>Value / point</label><input type="number" id="sw_ptval" value="1" step="0.01"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Long Swap</span><span class="res-val mono" id="sw_longCost">—</span></div>
+                    <div class="res-row"><span class="res-label">Short Swap</span><span class="res-val mono" id="sw_shortEarn">—</span></div>
+                </div>
+            </div>
+
+            <!-- Cross-Rate -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-bull"><i class="fa-solid fa-right-left"></i></span><h3 class="card-title">Cross-Rate</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Base/USD Rate</label><input type="number" id="cr_base" value="1.0850" step="0.0001"></div>
+                    <div class="field"><label>Quote/USD Rate</label><input type="number" id="cr_quote" value="0.8500" step="0.0001"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row primary"><span class="res-label">Cross Rate</span><span class="res-val mono t-info-txt" id="cr_rate">—</span></div>
+                    <div class="res-row"><span class="res-label">Inverse</span><span class="res-val mono" id="cr_inv">—</span></div>
+                </div>
+                <p class="note">Cross = Base/USD ÷ Quote/USD. Both rates are quoted as USD per 1 unit of currency.</p>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ==================== CRYPTO ==================== -->
+    <section id="tab-crypto" class="tab-content">
+        <div class="grid">
+
+            <!-- Liquidation Price -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-bear"><i class="fa-solid fa-triangle-exclamation"></i></span><h3 class="card-title">Liquidation Price</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Entry Price</label><input type="number" id="liq_entry" value="30000"></div>
+                    <div class="field"><label>Position Size (units)</label><input type="number" id="liq_size" value="0.5" step="0.001"></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><label>Leverage (x)</label><input type="number" id="liq_lev" value="10"></div>
+                    <div class="field"><label>Maintenance Margin %</label><input type="number" id="liq_mm" value="0.5" step="0.1"></div>
+                </div>
+                <div class="seg" id="liq_seg">
+                    <button type="button" data-dir="long" class="on-bull">Long</button>
+                    <button type="button" data-dir="short">Short</button>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Initial Margin</span><span class="res-val mono" id="liq_im">—</span></div>
+                    <div class="res-row primary"><span class="res-label">Liquidation Price</span><span class="res-val mono t-bear-txt" id="liq_price">—</span></div>
+                    <div class="res-row"><span class="res-label">Distance to Liq</span><span class="res-val mono t-warn-txt" id="liq_dist">—</span></div>
+                </div>
+                <p class="note">Isolated model: liq ≈ entry × (1 − 1/leverage + maint%) for longs. Cross margin and fees can move the real level.</p>
+            </div>
+
+            <!-- Funding Rate -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-info"><i class="fa-solid fa-bolt"></i></span><h3 class="card-title">Funding Rate</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Funding Rate % / interval</label><input type="number" id="fr_rate" value="0.01" step="0.001"></div>
+                    <div class="field"><label>Position Size (USD)</label><input type="number" id="fr_size" value="15000"></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><label>Intervals / Day</label><input type="number" id="fr_intervals" value="3"></div>
+                    <div class="field"><label>Side</label>
+                        <select id="fr_side"><option value="long">Long (pays if +)</option><option value="short">Short (earns if +)</option></select>
+                    </div>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Per-Interval</span><span class="res-val mono" id="fr_per">—</span></div>
+                    <div class="res-row"><span class="res-label">Daily</span><span class="res-val mono" id="fr_daily">—</span></div>
+                    <div class="res-row primary"><span class="res-label">Annualized Rate</span><span class="res-val mono t-info-txt" id="fr_annual">—</span></div>
+                </div>
+            </div>
+
+            <!-- DCA -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-bull"><i class="fa-solid fa-plus"></i></span><h3 class="card-title">DCA Calculator</h3></div>
+                <div class="field-row"><div class="field"><label>Buy 1: Price</label><input type="number" data-dca-price value="30000"></div><div class="field"><label>Amount ($)</label><input type="number" data-dca-amt value="5000"></div></div>
+                <div class="field-row"><div class="field"><label>Buy 2: Price</label><input type="number" data-dca-price value="28000"></div><div class="field"><label>Amount ($)</label><input type="number" data-dca-amt value="5000"></div></div>
+                <div class="field-row"><div class="field"><label>Buy 3: Price</label><input type="number" data-dca-price value="25000"></div><div class="field"><label>Amount ($)</label><input type="number" data-dca-amt value="5000"></div></div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Total Invested</span><span class="res-val mono" id="dca_total">—</span></div>
+                    <div class="res-row"><span class="res-label">Total Units</span><span class="res-val mono" id="dca_units">—</span></div>
+                    <div class="res-row primary"><span class="res-label">Avg Buy Price</span><span class="res-val mono t-info-txt" id="dca_avg">—</span></div>
+                    <div class="res-row"><span class="res-label">Value @ last price</span><span class="res-val mono" id="dca_value">—</span></div>
+                </div>
+            </div>
+
+            <!-- Staking -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-ai"><i class="fa-solid fa-piggy-bank"></i></span><h3 class="card-title">Staking: APY vs APR</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Principal</label><input type="number" id="stk_principal" value="10000"></div>
+                    <div class="field"><label>Rate % (APR)</label><input type="number" id="stk_rate" value="12" step="0.1"></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><label>Compounds / Year</label><input type="number" id="stk_compounds" value="12"></div>
+                    <div class="field"><label>Years</label><input type="number" id="stk_years" value="1"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">APR (Simple)</span><span class="res-val mono" id="stk_apr">—</span></div>
+                    <div class="res-row primary"><span class="res-label">APY (Compound)</span><span class="res-val mono t-bull-txt" id="stk_apy">—</span></div>
+                    <div class="res-row"><span class="res-label">Final Value</span><span class="res-val mono" id="stk_final">—</span></div>
+                    <div class="res-row"><span class="res-label">Interest Earned</span><span class="res-val mono t-bull-txt" id="stk_interest">—</span></div>
+                </div>
+            </div>
+
+            <!-- Fee & Slippage -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-warn"><i class="fa-solid fa-receipt"></i></span><h3 class="card-title">Fee &amp; Slippage Impact</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Order Size (USD)</label><input type="number" id="fs_size" value="10000"></div>
+                    <div class="field"><label>Maker Fee %</label><input type="number" id="fs_maker" value="0.02" step="0.001"></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><label>Taker Fee %</label><input type="number" id="fs_taker" value="0.05" step="0.001"></div>
+                    <div class="field"><label>Slippage %</label><input type="number" id="fs_slip" value="0.1" step="0.01"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Maker Fee (entry)</span><span class="res-val mono" id="fs_makerCost">—</span></div>
+                    <div class="res-row"><span class="res-label">Taker Fee (exit)</span><span class="res-val mono" id="fs_takerCost">—</span></div>
+                    <div class="res-row"><span class="res-label">Slippage (both sides)</span><span class="res-val mono t-warn-txt" id="fs_slipCost">—</span></div>
+                    <div class="res-row primary"><span class="res-label">Total Roundtrip Cost</span><span class="res-val mono t-bear-txt" id="fs_total">—</span></div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ==================== STOCKS ==================== -->
+    <section id="tab-stocks" class="tab-content">
+        <div class="grid">
+
+            <!-- Dividend Yield & Total Return -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-bull"><i class="fa-solid fa-hand-holding-dollar"></i></span><h3 class="card-title">Dividend Yield &amp; Total Return</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Share Price</label><input type="number" id="dy_price" value="150" step="0.01"></div>
+                    <div class="field"><label>Annual Div / Share</label><input type="number" id="dy_div" value="4.5" step="0.01"></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><label>Shares Owned</label><input type="number" id="dy_shares" value="100"></div>
+                    <div class="field"><label>Price Apprec. %</label><input type="number" id="dy_apprec" value="8" step="0.1"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Dividend Yield</span><span class="res-val mono t-bull-txt" id="dy_yield">—</span></div>
+                    <div class="res-row"><span class="res-label">Annual Div Income</span><span class="res-val mono" id="dy_income">—</span></div>
+                    <div class="res-row"><span class="res-label">Capital Gain</span><span class="res-val mono t-info-txt" id="dy_capgain">—</span></div>
+                    <div class="res-row primary"><span class="res-label">Total Return</span><span class="res-val mono t-bull-txt" id="dy_totalret">—</span></div>
+                </div>
+            </div>
+
+            <!-- Short Selling -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-bear"><i class="fa-solid fa-arrow-trend-down"></i></span><h3 class="card-title">Short Selling / Borrow Fee</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Short Price</label><input type="number" id="ss_price" value="150" step="0.01"></div>
+                    <div class="field"><label>Cover Price</label><input type="number" id="ss_cover" value="135" step="0.01"></div>
+                </div>
+                <div class="field-row cols-3">
+                    <div class="field"><label>Shares</label><input type="number" id="ss_shares" value="100"></div>
+                    <div class="field"><label>Borrow % / yr</label><input type="number" id="ss_borrow" value="2" step="0.1"></div>
+                    <div class="field"><label>Days Held</label><input type="number" id="ss_days" value="30"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Gross Profit</span><span class="res-val mono t-bull-txt" id="ss_gross">—</span></div>
+                    <div class="res-row"><span class="res-label">Borrow Fee</span><span class="res-val mono t-bear-txt" id="ss_fee">—</span></div>
+                    <div class="res-row primary"><span class="res-label">Net Profit</span><span class="res-val mono" id="ss_net">—</span></div>
+                </div>
+            </div>
+
+            <!-- Valuation Ratios -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-info"><i class="fa-solid fa-magnifying-glass-chart"></i></span><h3 class="card-title">Valuation Ratios</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Share Price</label><input type="number" id="vr_price" value="150" step="0.01"></div>
+                    <div class="field"><label>EPS (TTM)</label><input type="number" id="vr_eps" value="6" step="0.01"></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><label>Book Value / Share</label><input type="number" id="vr_bv" value="45" step="0.01"></div>
+                    <div class="field"><label>EPS Growth %</label><input type="number" id="vr_growth" value="15" step="0.1"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">P / E</span><span class="res-val mono" id="vr_pe">—</span></div>
+                    <div class="res-row"><span class="res-label">P / B</span><span class="res-val mono" id="vr_pb">—</span></div>
+                    <div class="res-row primary"><span class="res-label">PEG</span><span class="res-val mono t-info-txt" id="vr_peg">—</span></div>
+                    <div class="res-row"><span class="res-label">Earnings Yield</span><span class="res-val mono" id="vr_eyield">—</span></div>
+                </div>
+            </div>
+
+            <!-- Wash Sale -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-warn"><i class="fa-solid fa-scale-unbalanced"></i></span><h3 class="card-title">Wash Sale</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Buy Price</label><input type="number" id="ws_buy" value="150" step="0.01"></div>
+                    <div class="field"><label>Sell Price</label><input type="number" id="ws_sell" value="130" step="0.01"></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><label>Shares</label><input type="number" id="ws_shares" value="100"></div>
+                    <div class="field"><label>Repurchase Price</label><input type="number" id="ws_repurchase" value="128" step="0.01"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Realized P&amp;L</span><span class="res-val mono" id="ws_loss">—</span></div>
+                    <div class="res-row"><span class="res-label">Disallowed (wash)</span><span class="res-val mono t-warn-txt" id="ws_wash">—</span></div>
+                    <div class="res-row"><span class="res-label">Adjusted Cost Basis</span><span class="res-val mono" id="ws_basis">—</span></div>
+                    <div class="res-row primary"><span class="res-label">Deductible Loss</span><span class="res-val mono" id="ws_deduct">—</span></div>
+                </div>
+                <p class="note">If you rebuy within 30 days, a loss is disallowed and rolled into the new shares' cost basis.</p>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ==================== FUTURES ==================== -->
+    <section id="tab-futures" class="tab-content">
+        <div class="grid">
+
+            <!-- Tick Value -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-info"><i class="fa-solid fa-ruler"></i></span><h3 class="card-title">Tick Value P&amp;L</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Tick Size</label><input type="number" id="tv_ticksize" value="0.25" step="0.01"></div>
+                    <div class="field"><label>Tick Value ($)</label><input type="number" id="tv_tickval" value="12.5" step="0.01"></div>
+                </div>
+                <div class="field-row cols-3">
+                    <div class="field"><label>Entry</label><input type="number" id="tv_entry" value="4500" step="0.25"></div>
+                    <div class="field"><label>Exit</label><input type="number" id="tv_exit" value="4520" step="0.25"></div>
+                    <div class="field"><label>Contracts</label><input type="number" id="tv_contracts" value="2"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Ticks Moved</span><span class="res-val mono" id="tv_ticks">—</span></div>
+                    <div class="res-row"><span class="res-label">P&amp;L / Contract</span><span class="res-val mono" id="tv_plper">—</span></div>
+                    <div class="res-row primary"><span class="res-label">Total P&amp;L</span><span class="res-val mono" id="tv_total">—</span></div>
+                </div>
+            </div>
+
+            <!-- Contract Multiplier -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-ai"><i class="fa-solid fa-xmark"></i></span><h3 class="card-title">Contract Multiplier</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Multiplier ($/pt)</label><input type="number" id="cm_mult" value="50" step="0.01"></div>
+                    <div class="field"><label>Contracts</label><input type="number" id="cm_contracts" value="1"></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><label>Entry</label><input type="number" id="cm_entry" value="4500" step="0.25"></div>
+                    <div class="field"><label>Exit</label><input type="number" id="cm_exit" value="4530" step="0.25"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Notional / Contract</span><span class="res-val mono" id="cm_notional">—</span></div>
+                    <div class="res-row"><span class="res-label">Point Value</span><span class="res-val mono" id="cm_point">—</span></div>
+                    <div class="res-row primary"><span class="res-label">Total P&amp;L</span><span class="res-val mono" id="cm_total">—</span></div>
+                </div>
+            </div>
+
+            <!-- Futures Margin -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-warn"><i class="fa-solid fa-shield-halved"></i></span><h3 class="card-title">Futures Margin</h3></div>
+                <div class="field-row cols-3">
+                    <div class="field"><label>Initial / Contract</label><input type="number" id="fm_initial" value="13200"></div>
+                    <div class="field"><label>Maint. / Contract</label><input type="number" id="fm_maint" value="12000"></div>
+                    <div class="field"><label>Contracts</label><input type="number" id="fm_contracts" value="2"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row primary"><span class="res-label">Total Initial Margin</span><span class="res-val mono t-warn-txt" id="fm_totalInit">—</span></div>
+                    <div class="res-row"><span class="res-label">Total Maintenance</span><span class="res-val mono" id="fm_totalMaint">—</span></div>
+                    <div class="res-row"><span class="res-label">Buffer to Margin Call</span><span class="res-val mono t-bull-txt" id="fm_buffer">—</span></div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ==================== OPTIONS ==================== -->
+    <section id="tab-options" class="tab-content">
+        <div class="grid">
+
+            <!-- Options P&L -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-bull"><i class="fa-solid fa-bullseye"></i></span><h3 class="card-title">Options P&amp;L (at expiry)</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Type</label><select id="op_type"><option value="call">Call</option><option value="put">Put</option></select></div>
+                    <div class="field"><label>Position</label><select id="op_pos"><option value="long">Long</option><option value="short">Short</option></select></div>
+                </div>
+                <div class="field-row cols-3">
+                    <div class="field"><label>Strike</label><input type="number" id="op_strike" value="100" step="0.5"></div>
+                    <div class="field"><label>Premium</label><input type="number" id="op_premium" value="5" step="0.05"></div>
+                    <div class="field"><label>Underlying</label><input type="number" id="op_underlying" value="110" step="0.5"></div>
+                </div>
+                <div class="field"><label>Contracts (×100)</label><input type="number" id="op_contracts" value="1"></div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Max Profit</span><span class="res-val mono t-bull-txt" id="op_maxProfit">—</span></div>
+                    <div class="res-row"><span class="res-label">Max Loss</span><span class="res-val mono t-bear-txt" id="op_maxLoss">—</span></div>
+                    <div class="res-row"><span class="res-label">Breakeven</span><span class="res-val mono" id="op_be">—</span></div>
+                    <div class="res-row primary"><span class="res-label">P&amp;L @ Underlying</span><span class="res-val mono" id="op_pl">—</span></div>
+                </div>
+                <svg class="chart-svg" id="op_chart" viewBox="0 0 300 150" preserveAspectRatio="none" aria-hidden="true"></svg>
+            </div>
+
+            <!-- Black-Scholes -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-ai"><i class="fa-solid fa-square-root-variable"></i></span><h3 class="card-title">Black-Scholes Pricing</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Spot</label><input type="number" id="bs_spot" value="100" step="0.5"></div>
+                    <div class="field"><label>Strike</label><input type="number" id="bs_strike" value="100" step="0.5"></div>
+                </div>
+                <div class="field-row cols-3">
+                    <div class="field"><label>Days to Expiry</label><input type="number" id="bs_time" value="30"></div>
+                    <div class="field"><label>Rate %</label><input type="number" id="bs_rate" value="4" step="0.1"></div>
+                    <div class="field"><label>Vol %</label><input type="number" id="bs_vol" value="25" step="0.5"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row primary"><span class="res-label">Call Price</span><span class="res-val mono t-bull-txt" id="bs_call">—</span></div>
+                    <div class="res-row primary"><span class="res-label">Put Price</span><span class="res-val mono t-bear-txt" id="bs_put">—</span></div>
+                </div>
+            </div>
+
+            <!-- Greeks -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-info"><i class="fa-solid fa-chart-simple"></i></span><h3 class="card-title">Option Greeks (Call)</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Spot</label><input type="number" id="gk_spot" value="100" step="0.5"></div>
+                    <div class="field"><label>Strike</label><input type="number" id="gk_strike" value="100" step="0.5"></div>
+                </div>
+                <div class="field-row cols-3">
+                    <div class="field"><label>Days</label><input type="number" id="gk_days" value="30"></div>
+                    <div class="field"><label>Rate %</label><input type="number" id="gk_rate" value="4" step="0.1"></div>
+                    <div class="field"><label>Vol %</label><input type="number" id="gk_vol" value="25" step="0.5"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Delta</span><span class="res-val mono" id="gk_delta">—</span></div>
+                    <div class="res-row"><span class="res-label">Gamma</span><span class="res-val mono" id="gk_gamma">—</span></div>
+                    <div class="res-row"><span class="res-label">Theta / day</span><span class="res-val mono t-bear-txt" id="gk_theta">—</span></div>
+                    <div class="res-row"><span class="res-label">Vega / 1% vol</span><span class="res-val mono" id="gk_vega">—</span></div>
+                    <div class="res-row"><span class="res-label">Rho / 1% rate</span><span class="res-val mono" id="gk_rho">—</span></div>
+                </div>
+            </div>
+
+            <!-- Strategy Payoff -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-bull"><i class="fa-solid fa-chart-area"></i></span><h3 class="card-title">Strategy Payoff</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Strategy</label>
+                        <select id="sp_strategy">
+                            <option value="straddle">Long Straddle</option>
+                            <option value="strangle">Long Strangle</option>
+                            <option value="bullspread">Bull Call Spread</option>
+                            <option value="bearspread">Bear Put Spread</option>
+                        </select>
+                    </div>
+                    <div class="field"><label>Underlying</label><input type="number" id="sp_underlying" value="100" step="0.5"></div>
+                </div>
+                <div class="field-row cols-3">
+                    <div class="field"><label>Strike 1 (low)</label><input type="number" id="sp_k1" value="95" step="0.5"></div>
+                    <div class="field"><label>Strike 2 (high)</label><input type="number" id="sp_k2" value="105" step="0.5"></div>
+                    <div class="field"><label>Net Premium</label><input type="number" id="sp_premium" value="6" step="0.05"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Max Profit</span><span class="res-val mono t-bull-txt" id="sp_maxP">—</span></div>
+                    <div class="res-row"><span class="res-label">Max Loss</span><span class="res-val mono t-bear-txt" id="sp_maxL">—</span></div>
+                    <div class="res-row"><span class="res-label">Breakeven(s)</span><span class="res-val mono" id="sp_be">—</span></div>
+                </div>
+                <svg class="chart-svg" id="sp_chart" viewBox="0 0 300 150" preserveAspectRatio="none" aria-hidden="true"></svg>
+            </div>
+
+        </div>
+    </section>
+
+    </main>
+
+    <footer class="footer">
+        Educational tools only — not financial advice. All calculations run locally in your browser.
+    </footer>
+
+    <script>
+    'use strict';
+    // ================================================================
+    // calc.html engine — vanilla JS, no external libraries.
+    // Every formula here was audited against the source tools; the
+    // liquidation, Greeks and pip-value bugs from tool.html/tool2.html
+    // are fixed (see notes at each site).
+    // ================================================================
+    var $ = function (id) { return document.getElementById(id); };
+    var curSym = '$';
+
+    // ---- Formatting ------------------------------------------------
+    function n(v) { var x = parseFloat(v); return isFinite(x) ? x : 0; }
+    function fmt(v, d) {
+        d = d == null ? 2 : d;
+        if (!isFinite(v)) return '—';
+        return v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+    }
+    function money(v, d) { d = d == null ? 2 : d; return (v < 0 ? '-' : '') + curSym + fmt(Math.abs(v), d); }
+    function signedMoney(v, d) { d = d == null ? 2 : d; return (v >= 0 ? '+' : '-') + curSym + fmt(Math.abs(v), d); }
+    function pct(v, d) { d = d == null ? 2 : d; return (v >= 0 ? '+' : '') + fmt(v, d) + '%'; }
+    function tone(el, positive) {
+        if (!el) return;
+        el.classList.remove('t-bull-txt', 't-bear-txt');
+        el.classList.add(positive ? 't-bull-txt' : 't-bear-txt');
+    }
+
+    // ================================================================
+    // CORE
+    // ================================================================
+    function calcPositionSize() {
+        var bal = n($('ps_balance').value), risk = n($('ps_risk').value) / 100;
+        var entry = n($('ps_entry').value), stop = n($('ps_stop').value);
+        var riskAmt = bal * risk;
+        var perUnit = Math.abs(entry - stop);
+        var size = perUnit > 0 ? riskAmt / perUnit : 0;
+        $('ps_riskAmt').textContent = money(riskAmt);
+        $('ps_size').textContent = fmt(size);
+        $('ps_value').textContent = money(size * entry);
+    }
+
+    function calcRiskReward() {
+        var entry = n($('rr_entry').value), stop = n($('rr_stop').value), target = n($('rr_target').value);
+        var risk = Math.abs(entry - stop), reward = Math.abs(target - entry);
+        var ratio = risk > 0 ? reward / risk : 0;
+        // Breakeven win rate = risk / (risk + reward) = 1 / (1 + R:R).
+        var beWin = (1 + ratio) > 0 ? (1 / (1 + ratio)) * 100 : 0;
+        $('rr_risk').textContent = money(risk);
+        $('rr_reward').textContent = money(reward);
+        $('rr_ratio').textContent = '1 : ' + fmt(ratio, 2);
+        $('rr_be').textContent = fmt(beWin, 2) + '%';
+        // Horizontal bars: each fills relative to the larger of risk/reward, so
+        // the R:R proportion is read at a glance without a tall chart.
+        var maxRR = Math.max(risk, reward) || 1;
+        $('rr_riskbar').style.width = (risk / maxRR * 100).toFixed(1) + '%';
+        $('rr_rewardbar').style.width = (reward / maxRR * 100).toFixed(1) + '%';
+        $('rr_riskval').textContent = money(risk);
+        $('rr_rewardval').textContent = money(reward);
+    }
+
+    var plDir = 'long';
+    function calcProfitLoss() {
+        var entry = n($('pl_entry').value), exit = n($('pl_exit').value), size = n($('pl_size').value);
+        var diff = plDir === 'long' ? exit - entry : entry - exit;
+        var gross = diff * size;
+        var ret = entry > 0 ? (diff / entry) * 100 : 0;
+        var g = $('pl_gross'); g.textContent = signedMoney(gross); tone(g, gross >= 0);
+        var p = $('pl_pct'); p.textContent = pct(ret); tone(p, ret >= 0);
+    }
+
+    function calcBreakEven() {
+        var entry = n($('be_entry').value), comm = n($('be_comm').value);
+        var spread = n($('be_spread').value), size = n($('be_size').value);
+        // Round-trip commission (both sides) + spread cost across the position.
+        var totalFees = comm * 2 + spread * size;
+        var bePrice = size > 0 ? entry + totalFees / size : entry;
+        var move = entry > 0 ? ((bePrice - entry) / entry) * 100 : 0;
+        $('be_fees').textContent = money(totalFees);
+        $('be_price').textContent = fmt(bePrice, 4);
+        $('be_move').textContent = pct(move);
+    }
+
+    function calcCompounding() {
+        var cap = n($('cp_capital').value), ret = n($('cp_return').value) / 100;
+        var months = Math.max(0, Math.round(n($('cp_months').value)));
+        var dep = n($('cp_deposit').value);
+        var bal = cap;
+        for (var i = 0; i < months; i++) { bal = bal * (1 + ret) + dep; }
+        var totalDep = cap + dep * months;
+        $('cp_final').textContent = money(bal);
+        $('cp_totalDep').textContent = money(totalDep);
+        $('cp_profit').textContent = money(bal - totalDep);
+    }
+
+    function calcDrawdown() {
+        var peak = n($('dd_peak').value), cur = n($('dd_current').value);
+        var loss = peak - cur;
+        var ddPct = peak > 0 ? (loss / peak) * 100 : 0;
+        var recover = cur > 0 ? (loss / cur) * 100 : 0;
+        $('dd_pct').textContent = '-' + fmt(ddPct, 2) + '%';
+        $('dd_loss').textContent = money(-loss);
+        $('dd_recover').textContent = '+' + fmt(recover, 2) + '%';
+    }
+
+    // ================================================================
+    // FOREX
+    // ================================================================
+    var PIP_SIZE = { EURUSD: 0.0001, GBPUSD: 0.0001, USDJPY: 0.01, AUDUSD: 0.0001, USDCAD: 0.0001, USDCHF: 0.0001 };
+    function calcPipValue() {
+        var pair = $('fx_pair').value, lot = n($('fx_lot').value), rate = n($('fx_rate').value);
+        var pipSize = PIP_SIZE[pair] || 0.0001;
+        var contract = 100000 * lot;
+        // Pip value in the QUOTE currency, then convert to account currency.
+        var pipQuote = contract * pipSize;
+        var pipAcct = pipQuote * (rate > 0 ? rate : 1);
+        $('fx_contract').textContent = fmt(contract, 0) + ' units';
+        $('fx_pipsize').textContent = String(pipSize);
+        $('fx_pipquote').textContent = fmt(pipQuote, 2);
+        $('fx_pipval').textContent = curSym + fmt(pipAcct, 2);
+    }
+
+    function calcMargin() {
+        var lots = n($('mg_lots').value), lev = n($('mg_lev').value);
+        var price = n($('mg_price').value), bal = n($('mg_balance').value);
+        var notional = lots * 100000 * price;
+        var margin = lev > 0 ? notional / lev : 0;
+        $('mg_notional').textContent = money(notional);
+        $('mg_margin').textContent = money(margin);
+        var free = $('mg_free'); free.textContent = money(bal - margin); tone(free, (bal - margin) >= 0);
+    }
+
+    function calcSwap() {
+        var lng = n($('sw_long').value), sht = n($('sw_short').value);
+        var lots = n($('sw_lots').value), days = n($('sw_days').value), ptVal = n($('sw_ptval').value);
+        var longCost = lng * lots * days * ptVal;
+        var shortEarn = sht * lots * days * ptVal;
+        var lc = $('sw_longCost'); lc.textContent = signedMoney(longCost); tone(lc, longCost >= 0);
+        var se = $('sw_shortEarn'); se.textContent = signedMoney(shortEarn); tone(se, shortEarn >= 0);
+    }
+
+    function calcCrossRate() {
+        var base = n($('cr_base').value), quote = n($('cr_quote').value);
+        var rate = quote > 0 ? base / quote : 0;
+        var inv = rate > 0 ? 1 / rate : 0;
+        $('cr_rate').textContent = fmt(rate, 4);
+        $('cr_inv').textContent = fmt(inv, 4);
+    }
+
+    // ================================================================
+    // CRYPTO
+    // ================================================================
+    var liqDir = 'long';
+    function calcLiquidation() {
+        var entry = n($('liq_entry').value), size = n($('liq_size').value);
+        var lev = n($('liq_lev').value), mm = n($('liq_mm').value) / 100;
+        var im = lev > 0 ? (entry * size) / lev : 0;
+        // FIX: standard isolated-margin liquidation.
+        //   long:  entry * (1 - 1/lev + mm)
+        //   short: entry * (1 + 1/lev - mm)
+        // (tool.html inverted this; tool2.html dropped the 1/lev term.)
+        var liq = 0;
+        if (lev > 0) {
+            liq = liqDir === 'long'
+                ? entry * (1 - 1 / lev + mm)
+                : entry * (1 + 1 / lev - mm);
+        }
+        var dist = entry > 0 ? ((liq - entry) / entry) * 100 : 0;
+        $('liq_im').textContent = money(im);
+        $('liq_price').textContent = fmt(liq, 2);
+        $('liq_dist').textContent = pct(dist);
+    }
+
+    function calcFunding() {
+        var rate = n($('fr_rate').value) / 100, size = n($('fr_size').value);
+        var intervals = Math.max(1, Math.round(n($('fr_intervals').value)));
+        var side = $('fr_side').value;
+        // Positive funding: longs PAY, shorts RECEIVE. Sign reflects cash flow.
+        var sign = side === 'long' ? -1 : 1;
+        var per = size * rate * sign;
+        var daily = per * intervals;
+        var annual = rate * 100 * intervals * 365; // annualized % (magnitude)
+        var pe = $('fr_per'); pe.textContent = signedMoney(per); tone(pe, per >= 0);
+        var dy = $('fr_daily'); dy.textContent = signedMoney(daily); tone(dy, daily >= 0);
+        $('fr_annual').textContent = fmt(annual, 2) + '%';
+    }
+
+    function calcDCA() {
+        var prices = document.querySelectorAll('[data-dca-price]');
+        var amounts = document.querySelectorAll('[data-dca-amt]');
+        var totalInvested = 0, totalUnits = 0, lastPrice = 0;
+        for (var i = 0; i < prices.length; i++) {
+            var p = n(prices[i].value), a = n(amounts[i].value);
+            if (p > 0 && a > 0) { totalInvested += a; totalUnits += a / p; lastPrice = p; }
+        }
+        var avg = totalUnits > 0 ? totalInvested / totalUnits : 0;
+        var value = totalUnits * lastPrice;
+        $('dca_total').textContent = money(totalInvested);
+        $('dca_units').textContent = fmt(totalUnits, 4);
+        $('dca_avg').textContent = fmt(avg, 2);
+        $('dca_value').textContent = money(value);
+    }
+
+    function calcStaking() {
+        var principal = n($('stk_principal').value), rate = n($('stk_rate').value) / 100;
+        var comp = Math.max(1, Math.round(n($('stk_compounds').value)));
+        var years = n($('stk_years').value);
+        var apr = rate * 100;
+        var apy = (Math.pow(1 + rate / comp, comp) - 1) * 100;
+        var finalVal = principal * Math.pow(1 + rate / comp, comp * years);
+        $('stk_apr').textContent = fmt(apr, 2) + '%';
+        $('stk_apy').textContent = fmt(apy, 2) + '%';
+        $('stk_final').textContent = money(finalVal);
+        $('stk_interest').textContent = money(finalVal - principal);
+    }
+
+    function calcFeeSlippage() {
+        var size = n($('fs_size').value);
+        var maker = n($('fs_maker').value) / 100, taker = n($('fs_taker').value) / 100, slip = n($('fs_slip').value) / 100;
+        var makerCost = size * maker;    // entry (maker)
+        var takerCost = size * taker;    // exit (taker)
+        var slipCost = size * slip * 2;  // slippage on both fills
+        var total = makerCost + takerCost + slipCost;
+        $('fs_makerCost').textContent = money(makerCost);
+        $('fs_takerCost').textContent = money(takerCost);
+        $('fs_slipCost').textContent = money(slipCost);
+        $('fs_total').textContent = money(total);
+    }
+
+    // ================================================================
+    // STOCKS
+    // ================================================================
+    function calcDividendYield() {
+        var price = n($('dy_price').value), div = n($('dy_div').value);
+        var shares = n($('dy_shares').value), apprec = n($('dy_apprec').value) / 100;
+        var yieldPct = price > 0 ? (div / price) * 100 : 0;
+        var income = div * shares;
+        var capGain = price * shares * apprec;
+        var totalRet = income + capGain;
+        var totalPct = yieldPct + apprec * 100;
+        $('dy_yield').textContent = fmt(yieldPct, 2) + '%';
+        $('dy_income').textContent = money(income);
+        $('dy_capgain').textContent = money(capGain);
+        $('dy_totalret').textContent = money(totalRet) + ' (' + fmt(totalPct, 2) + '%)';
+    }
+
+    function calcShortSelling() {
+        var price = n($('ss_price').value), cover = n($('ss_cover').value);
+        var shares = n($('ss_shares').value), borrow = n($('ss_borrow').value) / 100, days = n($('ss_days').value);
+        var gross = (price - cover) * shares;
+        // Borrow fee accrues on the short's market value, pro-rated by days held.
+        var fee = price * shares * borrow * days / 365;
+        var net = gross - fee;
+        var g = $('ss_gross'); g.textContent = signedMoney(gross); tone(g, gross >= 0);
+        $('ss_fee').textContent = money(-fee);
+        var nn = $('ss_net'); nn.textContent = signedMoney(net); tone(nn, net >= 0);
+    }
+
+    function calcValuation() {
+        var price = n($('vr_price').value), eps = n($('vr_eps').value);
+        var bv = n($('vr_bv').value), growth = n($('vr_growth').value);
+        var pe = eps > 0 ? price / eps : 0;
+        var pb = bv > 0 ? price / bv : 0;
+        var peg = growth > 0 && pe > 0 ? pe / growth : 0;
+        var eyield = price > 0 ? (eps / price) * 100 : 0;
+        $('vr_pe').textContent = eps > 0 ? fmt(pe, 2) : 'n/a';
+        $('vr_pb').textContent = bv > 0 ? fmt(pb, 2) : 'n/a';
+        $('vr_peg').textContent = peg > 0 ? fmt(peg, 2) : 'n/a';
+        $('vr_eyield').textContent = fmt(eyield, 2) + '%';
+    }
+
+    function calcWashSale() {
+        var buy = n($('ws_buy').value), sell = n($('ws_sell').value);
+        var shares = n($('ws_shares').value), repurchase = n($('ws_repurchase').value);
+        var realized = (sell - buy) * shares;          // negative => a loss
+        var wash = realized < 0 ? Math.abs(realized) : 0; // disallowed loss
+        var basis = shares > 0 ? repurchase + wash / shares : repurchase; // rolled into new lot
+        var deductible = realized >= 0 ? 0 : 0;         // a wash disallows the whole loss now
+        var r = $('ws_loss'); r.textContent = signedMoney(realized); tone(r, realized >= 0);
+        $('ws_wash').textContent = money(wash);
+        $('ws_basis').textContent = fmt(basis, 2);
+        $('ws_deduct').textContent = money(deductible);
+    }
+
+    // ================================================================
+    // FUTURES
+    // ================================================================
+    function calcTickValue() {
+        var ts = n($('tv_ticksize').value), tval = n($('tv_tickval').value);
+        var entry = n($('tv_entry').value), exit = n($('tv_exit').value), contracts = n($('tv_contracts').value);
+        var ticks = ts > 0 ? (exit - entry) / ts : 0;
+        var plPer = ticks * tval;
+        var total = plPer * contracts;
+        $('tv_ticks').textContent = fmt(ticks, 0);
+        var pp = $('tv_plper'); pp.textContent = signedMoney(plPer); tone(pp, plPer >= 0);
+        var tt = $('tv_total'); tt.textContent = signedMoney(total); tone(tt, total >= 0);
+    }
+
+    function calcContractMultiplier() {
+        var mult = n($('cm_mult').value), contracts = n($('cm_contracts').value);
+        var entry = n($('cm_entry').value), exit = n($('cm_exit').value);
+        var notional = entry * mult;
+        var total = (exit - entry) * mult * contracts;
+        $('cm_notional').textContent = money(notional);
+        $('cm_point').textContent = money(mult);
+        var tt = $('cm_total'); tt.textContent = signedMoney(total); tone(tt, total >= 0);
+    }
+
+    function calcFuturesMargin() {
+        var init = n($('fm_initial').value), maint = n($('fm_maint').value), contracts = n($('fm_contracts').value);
+        var totalInit = init * contracts, totalMaint = maint * contracts;
+        $('fm_totalInit').textContent = money(totalInit);
+        $('fm_totalMaint').textContent = money(totalMaint);
+        $('fm_buffer').textContent = money(totalInit - totalMaint);
+    }
+
+    // ================================================================
+    // OPTIONS
+    // ================================================================
+    // Abramowitz & Stegun 7.1.26 approximation of the standard normal CDF.
+    function normCdf(x) {
+        var a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741,
+            a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+        var sign = x < 0 ? -1 : 1;
+        x = Math.abs(x) / Math.sqrt(2);
+        var t = 1 / (1 + p * x);
+        var y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+        return 0.5 * (1 + sign * y);
+    }
+    function normPdf(x) { return Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI); }
+
+    function blackScholes(S, K, T, r, sigma, type) {
+        if (T <= 0 || sigma <= 0 || S <= 0 || K <= 0) {
+            // Intrinsic value at/after expiry.
+            return type === 'call' ? Math.max(S - K, 0) : Math.max(K - S, 0);
+        }
+        var d1 = (Math.log(S / K) + (r + sigma * sigma / 2) * T) / (sigma * Math.sqrt(T));
+        var d2 = d1 - sigma * Math.sqrt(T);
+        if (type === 'call') return S * normCdf(d1) - K * Math.exp(-r * T) * normCdf(d2);
+        return K * Math.exp(-r * T) * normCdf(-d2) - S * normCdf(-d1);
+    }
+
+    // FIX: this was named calcGreeks() in tool.html and collided with the UI
+    // handler, causing infinite recursion. Renamed to computeGreeks().
+    function computeGreeks(S, K, T, r, sigma) {
+        if (T <= 0 || sigma <= 0) return { delta: 0, gamma: 0, theta: 0, vega: 0, rho: 0 };
+        var sqrtT = Math.sqrt(T);
+        var d1 = (Math.log(S / K) + (r + sigma * sigma / 2) * T) / (sigma * sqrtT);
+        var d2 = d1 - sigma * sqrtT;
+        var nd1 = normPdf(d1);
+        // Call greeks, in standard display conventions.
+        var delta = normCdf(d1);
+        var gamma = nd1 / (S * sigma * sqrtT);
+        var thetaYr = -(S * nd1 * sigma) / (2 * sqrtT) - r * K * Math.exp(-r * T) * normCdf(d2);
+        return {
+            delta: delta,
+            gamma: gamma,
+            theta: thetaYr / 365,               // per calendar day
+            vega: S * nd1 * sqrtT / 100,         // per 1% change in vol
+            rho: K * T * Math.exp(-r * T) * normCdf(d2) / 100 // per 1% change in rate
+        };
+    }
+
+    function calcOptionsPnL() {
+        var type = $('op_type').value, pos = $('op_pos').value;
+        var K = n($('op_strike').value), prem = n($('op_premium').value);
+        var S = n($('op_underlying').value), contracts = n($('op_contracts').value);
+        var mult = 100;
+        var intrinsic = type === 'call' ? Math.max(S - K, 0) : Math.max(K - S, 0);
+        var perShare = (pos === 'long' ? (intrinsic - prem) : (prem - intrinsic));
+        var pl = perShare * mult * contracts;
+
+        var maxProfit, maxLoss, be;
+        if (type === 'call') {
+            be = K + prem;
+            if (pos === 'long') { maxProfit = Infinity; maxLoss = -prem * mult * contracts; }
+            else { maxProfit = prem * mult * contracts; maxLoss = -Infinity; }
+        } else {
+            be = K - prem;
+            if (pos === 'long') { maxProfit = (K - prem) * mult * contracts; maxLoss = -prem * mult * contracts; }
+            else { maxProfit = prem * mult * contracts; maxLoss = -(K - prem) * mult * contracts; }
+        }
+        $('op_maxProfit').textContent = maxProfit === Infinity ? 'Unlimited' : money(maxProfit);
+        $('op_maxLoss').textContent = maxLoss === -Infinity ? 'Unlimited' : money(maxLoss);
+        $('op_be').textContent = fmt(be, 2);
+        var plEl = $('op_pl'); plEl.textContent = signedMoney(pl); tone(plEl, pl >= 0);
+
+        // Payoff curve.
+        var pts = payoffCurve(K, function (p) {
+            var intr = type === 'call' ? Math.max(p - K, 0) : Math.max(K - p, 0);
+            return (pos === 'long' ? (intr - prem) : (prem - intr)) * mult * contracts;
+        });
+        drawLine('op_chart', pts, S);
+    }
+
+    function calcBlackScholes() {
+        var S = n($('bs_spot').value), K = n($('bs_strike').value);
+        var T = Math.max(0, n($('bs_time').value)) / 365;
+        var r = n($('bs_rate').value) / 100, sigma = n($('bs_vol').value) / 100;
+        $('bs_call').textContent = curSym + fmt(blackScholes(S, K, T, r, sigma, 'call'), 2);
+        $('bs_put').textContent = curSym + fmt(blackScholes(S, K, T, r, sigma, 'put'), 2);
+    }
+
+    function calcGreeksUI() {
+        var S = n($('gk_spot').value), K = n($('gk_strike').value);
+        var T = Math.max(0, n($('gk_days').value)) / 365;
+        var r = n($('gk_rate').value) / 100, sigma = n($('gk_vol').value) / 100;
+        var g = computeGreeks(S, K, T, r, sigma);
+        $('gk_delta').textContent = fmt(g.delta, 4);
+        $('gk_gamma').textContent = fmt(g.gamma, 4);
+        $('gk_theta').textContent = fmt(g.theta, 4);
+        $('gk_vega').textContent = fmt(g.vega, 4);
+        $('gk_rho').textContent = fmt(g.rho, 4);
+    }
+
+    function calcStrategyPayoff() {
+        var strat = $('sp_strategy').value;
+        var S = n($('sp_underlying').value);
+        var k1 = n($('sp_k1').value), k2 = n($('sp_k2').value), prem = n($('sp_premium').value);
+        var mult = 100;
+        var lo = Math.min(k1, k2), hi = Math.max(k1, k2);
+
+        function payoff(p) {
+            switch (strat) {
+                case 'straddle':  return (Math.abs(p - lo) - prem) * mult;
+                case 'strangle':  return (Math.max(lo - p, 0) + Math.max(p - hi, 0) - prem) * mult;
+                case 'bullspread': return (Math.max(p - lo, 0) - Math.max(p - hi, 0) - prem) * mult;
+                case 'bearspread': return (Math.max(hi - p, 0) - Math.max(p - lo, 0) - prem) * mult;
+            }
+            return 0;
+        }
+        var maxP, maxL, be;
+        switch (strat) {
+            case 'straddle':
+                maxP = Infinity; maxL = -prem * mult;
+                be = fmt(lo - prem, 2) + ' / ' + fmt(lo + prem, 2); break;
+            case 'strangle':
+                maxP = Infinity; maxL = -prem * mult;
+                be = fmt(lo - prem, 2) + ' / ' + fmt(hi + prem, 2); break;
+            case 'bullspread':
+                maxP = (hi - lo - prem) * mult; maxL = -prem * mult;
+                be = fmt(lo + prem, 2); break;
+            case 'bearspread':
+                maxP = (hi - lo - prem) * mult; maxL = -prem * mult;
+                be = fmt(hi - prem, 2); break;
+        }
+        $('sp_maxP').textContent = maxP === Infinity ? 'Unlimited' : money(maxP);
+        $('sp_maxL').textContent = money(maxL);
+        $('sp_be').textContent = be;
+        drawLine('sp_chart', payoffCurve((lo + hi) / 2 || S, payoff, lo, hi), S);
+    }
+
+    // ---- Inline SVG charts ----------------------------------------
+    function payoffCurve(center, fn, lo, hi) {
+        var minP, maxP;
+        if (lo != null && hi != null) { minP = Math.max(0, lo * 0.6); maxP = hi * 1.4; }
+        else { minP = Math.max(0, center * 0.5); maxP = center * 1.5; }
+        if (maxP <= minP) maxP = minP + 1;
+        var pts = [], step = (maxP - minP) / 50;
+        for (var p = minP; p <= maxP + 1e-9; p += step) pts.push({ x: p, y: fn(p) });
+        return pts;
+    }
+
+    function svgNS(tag, attrs) {
+        var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        for (var k in attrs) el.setAttribute(k, attrs[k]);
+        return el;
+    }
+
+    function drawLine(id, pts, marker) {
+        var svg = $(id); if (!svg) return;
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        var W = 300, H = 150, pad = 4;
+        var xs = pts.map(function (p) { return p.x; }), ys = pts.map(function (p) { return p.y; });
+        var minX = Math.min.apply(null, xs), maxX = Math.max.apply(null, xs);
+        var minY = Math.min.apply(null, ys), maxY = Math.max.apply(null, ys);
+        if (maxX === minX) maxX = minX + 1;
+        if (maxY === minY) maxY = minY + 1;
+        var sx = function (x) { return pad + (x - minX) / (maxX - minX) * (W - 2 * pad); };
+        var sy = function (y) { return H - pad - (y - minY) / (maxY - minY) * (H - 2 * pad); };
+        // Zero line.
+        if (minY < 0 && maxY > 0) {
+            svg.appendChild(svgNS('line', { x1: pad, y1: sy(0), x2: W - pad, y2: sy(0),
+                stroke: 'var(--c-border-hover)', 'stroke-width': 1, 'stroke-dasharray': '3 3' }));
+        }
+        var d = pts.map(function (p, i) { return (i ? 'L' : 'M') + sx(p.x).toFixed(1) + ' ' + sy(p.y).toFixed(1); }).join(' ');
+        // Area fill.
+        var area = d + ' L' + sx(pts[pts.length - 1].x).toFixed(1) + ' ' + sy(Math.max(minY, 0)).toFixed(1) +
+                   ' L' + sx(pts[0].x).toFixed(1) + ' ' + sy(Math.max(minY, 0)).toFixed(1) + ' Z';
+        svg.appendChild(svgNS('path', { d: area, fill: 'rgba(34,211,238,0.10)', stroke: 'none' }));
+        svg.appendChild(svgNS('path', { d: d, fill: 'none', stroke: 'var(--c-brand-1)', 'stroke-width': 2 }));
+        if (marker != null && marker >= minX && marker <= maxX) {
+            svg.appendChild(svgNS('line', { x1: sx(marker), y1: pad, x2: sx(marker), y2: H - pad,
+                stroke: 'var(--c-brand-2)', 'stroke-width': 1, 'stroke-dasharray': '2 2' }));
+        }
+    }
+
+    // ---- Recalc-all ------------------------------------------------
+    function recalcAll() {
+        [calcPositionSize, calcRiskReward, calcProfitLoss, calcBreakEven, calcCompounding, calcDrawdown,
+         calcPipValue, calcMargin, calcSwap, calcCrossRate,
+         calcLiquidation, calcFunding, calcDCA, calcStaking, calcFeeSlippage,
+         calcDividendYield, calcShortSelling, calcValuation, calcWashSale,
+         calcTickValue, calcContractMultiplier, calcFuturesMargin,
+         calcOptionsPnL, calcBlackScholes, calcGreeksUI, calcStrategyPayoff
+        ].forEach(function (f) { try { f(); } catch (e) { console.warn(f.name, e); } });
+    }
+
+    // ---- Tabs ------------------------------------------------------
+    document.querySelectorAll('.tab-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
+            btn.classList.add('active'); btn.setAttribute('aria-selected', 'true');
+            document.querySelectorAll('.tab-content').forEach(function (c) { c.classList.remove('active'); });
+            $('tab-' + btn.dataset.tab).classList.add('active');
+            try { localStorage.setItem('calc.tab', btn.dataset.tab); } catch (e) {}
+            recalcAll(); // charts need a visible container to size correctly
+        });
+    });
+
+    // ---- Direction toggles ----------------------------------------
+    function wireSeg(segId, setter) {
+        var seg = $(segId); if (!seg) return;
+        seg.querySelectorAll('button').forEach(function (b) {
+            b.addEventListener('click', function () {
+                seg.querySelectorAll('button').forEach(function (x) { x.classList.remove('on-bull', 'on-bear'); });
+                b.classList.add(b.dataset.dir === 'long' ? 'on-bull' : 'on-bear');
+                setter(b.dataset.dir);
+            });
+        });
+    }
+    wireSeg('pl_seg', function (d) { plDir = d; calcProfitLoss(); });
+    wireSeg('liq_seg', function (d) { liqDir = d; calcLiquidation(); });
+
+    // ---- Persistence + live recalc --------------------------------
+    // Restore saved values BEFORE the first recalc (tool.html restored after,
+    // leaving results stale until the user typed).
+    document.querySelectorAll('input, select').forEach(function (el) {
+        if (el.id) {
+            try {
+                var saved = localStorage.getItem('calc.' + el.id);
+                if (saved !== null) el.value = saved;
+            } catch (e) {}
+        }
+        el.addEventListener('input', function () {
+            if (el.id) { try { localStorage.setItem('calc.' + el.id, el.value); } catch (e) {} }
+            recalcAll();
+        });
+        el.addEventListener('change', recalcAll);
+    });
+
+    // ---- Init ------------------------------------------------------
+    (function () {
+        var tab = 'core';
+        try { tab = localStorage.getItem('calc.tab') || 'core'; } catch (e) {}
+        var btn = document.querySelector('.tab-btn[data-tab="' + tab + '"]');
+        if (btn && tab !== 'core') { btn.click(); } else { recalcAll(); }
+    })();
+    </script>
+
+</body>
+</html>

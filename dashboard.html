@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Live Market Dashboard</title>
+    <!-- Locally hosted FontAwesome 7 (icons + self-hosted webfonts under ../webfonts/).
+         Replaces all emoji/CDN icons and CDN fonts — fully offline, no external calls. -->
+    <link rel="stylesheet" href="assets/fontawesome-free-7.3.1-web/css/all.min.css">
     <style>
         /* ==============================================================
            Design tokens
@@ -32,8 +35,26 @@
             --c-accent-2: #00d4ff;
             --c-live: #00e676;
             --c-danger: #ff6b6b;
-            --grad-brand: linear-gradient(90deg, var(--c-accent-2), var(--c-accent));
-            --grad-action: linear-gradient(135deg, var(--c-accent), var(--c-accent-2));
+
+            /* ---- Brand & action palette (WCAG-AA verified) ----
+               Replaces the old cyan/purple gradients with a cohesive
+               cyan -> indigo -> violet scale.
+               • --grad-brand paints clipped display text on the dark shell:
+                 cyan #22d3ee ~10:1 and indigo #818cf8 ~7:1 vs --c-bg.
+               • --grad-action fills buttons carrying WHITE label text:
+                 indigo #4f46e5 gives white 6.3:1 and violet #7c3aed 5.7:1
+                 (both clear the 4.5:1 AA threshold for normal text). */
+            --c-brand-1:  #22d3ee;   /* cyan  */
+            --c-brand-2:  #818cf8;   /* indigo (light) */
+            --c-action-1: #4f46e5;   /* indigo 600 */
+            --c-action-2: #7c3aed;   /* violet 600 */
+            --grad-brand: linear-gradient(90deg, var(--c-brand-1), var(--c-brand-2));
+            --grad-action: linear-gradient(135deg, var(--c-action-1), var(--c-action-2));
+
+            /* Distinct, accessible accents for the header FontAwesome icons. */
+            --c-ico-chart: #22d3ee;  /* cyan   — charts / eye toggle */
+            --c-ico-calc:  #fbbf24;  /* amber  — calculator */
+            --c-ico-save:  #34d399;  /* green  — save profile (when on) */
 
             /* ---- Pixel-aware primitives ----
                --hairline renders a true 1-device-pixel rule (see the HiDPI
@@ -188,6 +209,12 @@
             display: flex; align-items: center; gap: var(--sp-3);
             flex: 0 0 auto; margin-left: auto;
         }
+
+        /* Interval field groups its own label + selector. Redundant in the
+           Charts workspace (TradingView supplies interval controls), so it is
+           surfaced ONLY in Keen Eye, where the analysis needs the timeframe. */
+        .interval-field { display: inline-flex; align-items: center; gap: var(--sp-3); }
+        .app[data-workspace="charts"] .interval-field { display: none; }
 
         .controls label {
             font-size: var(--fs-xs);
@@ -502,10 +529,34 @@
         }
         .icon-btn:hover { background: var(--c-elevated); }
         .icon-btn:focus-visible { outline: 2px solid var(--c-accent-2); outline-offset: 2px; }
-        .icon-btn[aria-pressed="true"] { border-color: var(--c-accent); }
-        /* Save-profile toggle: dim when off, full brightness when on. */
-        #saveProfileBtn { opacity: 0.5; }
-        #saveProfileBtn[aria-pressed="true"] { opacity: 1; }
+        .icon-btn i { font-size: 0.95em; line-height: 1; }
+
+        /* Colourful, accessible header glyphs (FontAwesome, locally hosted). */
+        #wsToggle i { color: var(--c-ico-chart); }
+        #calcLink i { color: var(--c-ico-calc); }
+
+        /* Save-profile toggle — unmistakable ON / OFF states.
+           OFF: dimmed, greyed glyph, neutral chrome.
+           ON:  green glyph, green ring + soft glow, tinted fill. */
+        #saveProfileBtn { transition: background .2s, border-color .2s, box-shadow .2s, opacity .2s; }
+        #saveProfileBtn i { color: var(--c-text-faint); transition: color .2s, transform .2s; }
+        #saveProfileBtn[aria-pressed="false"] { opacity: 0.6; }
+        #saveProfileBtn[aria-pressed="true"] {
+            opacity: 1;
+            border-color: var(--c-ico-save);
+            background: rgba(52, 211, 153, 0.14);
+            box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.35), 0 0 12px rgba(52, 211, 153, 0.28);
+        }
+        #saveProfileBtn[aria-pressed="true"] i { color: var(--c-ico-save); transform: scale(1.08); }
+
+        /* Brand glyph in the H1 — opt out of the gradient text-clip so it keeps
+           its own solid colour instead of rendering transparent. */
+        .header h1 .brand-ico {
+            -webkit-text-fill-color: var(--c-brand-1);
+            color: var(--c-brand-1);
+            font-size: 0.9em;
+            margin-right: 0.4em;
+        }
 
         /* ---- Workspaces: stacked in the same area, only the active shown ---- */
         .workspace { position: absolute; inset: 0; display: none; overflow: hidden; }
@@ -994,7 +1045,7 @@
          scroll off-screen. -->
     <div class="app-header">
         <div class="header">
-            <h1>&#x1F4C8; Keen Eye</h1>
+            <h1><i class="fa-solid fa-chart-line brand-ico" aria-hidden="true"></i>Keen Eye</h1>
 
             <div class="status">
                 <span class="conn-chip" id="connChip" title="Analysis proxy connection: Idle">
@@ -1007,13 +1058,13 @@
             <div class="header-actions">
                 <button type="button" class="icon-btn" id="wsToggle"
                         aria-pressed="false" aria-label="Switch to Keen Eye" title="Switch to Keen Eye">
-                    <span id="wsToggleIcon" aria-hidden="true">&#x1F4C8;</span>
+                    <i class="fa-solid fa-chart-line" id="wsToggleIcon" aria-hidden="true"></i>
                 </button>
                 <a class="icon-btn" id="calcLink" href="calc.html" target="_blank" rel="noopener"
-                   aria-label="Open Calculator" title="Open Calculator">&#x1F9EE;</a>
+                   aria-label="Open Calculator" title="Open Calculator"><i class="fa-solid fa-calculator" aria-hidden="true"></i></a>
                 <button type="button" class="icon-btn" id="saveProfileBtn"
                         aria-pressed="false" aria-label="Save profile preferences" title="Save profile preferences">
-                    &#x1F4BE;
+                    <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
                 </button>
             </div>
         </div>
@@ -1033,27 +1084,24 @@
                 </div>
             </div>
 
-            <label for="intervalSelect">Interval:</label>
-            <div class="select-wrap">
-                <select id="intervalSelect">
-                    <option value="1">1m</option>
-                    <option value="5">5m</option>
-                    <option value="15">15m</option>
-                    <option value="30">30m</option>
-                    <option value="60" selected>1h</option>
-                    <option value="240">4h</option>
-                    <option value="D">D</option>
-                </select>
-            </div>
-
-            <label for="styleSelect">Style:</label>
-            <div class="select-wrap">
-                <select id="styleSelect">
-                    <option value="1" selected>Candles</option>
-                    <option value="2">Line</option>
-                    <option value="3">Area</option>
-                    <option value="9">Hollow Candles</option>
-                </select>
+            <!-- Interval + chart-style pickers are redundant inside the Charts
+                 workspace: the TradingView widget supplies its own. The style
+                 picker is removed entirely; the interval field is kept in the
+                 DOM but only shown in the Keen Eye workspace, where the analysis
+                 needs a timeframe and there is no chart toolbar to set one. -->
+            <div class="interval-field" id="intervalField">
+                <label for="intervalSelect">Interval:</label>
+                <div class="select-wrap">
+                    <select id="intervalSelect">
+                        <option value="1">1m</option>
+                        <option value="5">5m</option>
+                        <option value="15">15m</option>
+                        <option value="30">30m</option>
+                        <option value="60" selected>1h</option>
+                        <option value="240">4h</option>
+                        <option value="D">D</option>
+                    </select>
+                </div>
             </div>
 
             <button type="button" id="reloadBtn">Reload</button>
@@ -1107,7 +1155,7 @@
                     <div id="analysisCard" class="qt-card-host" aria-live="polite">
                         <!-- Welcoming empty state; replaced by qt-card.js on first analysis. -->
                         <div class="qtw-empty">
-                            <div class="qtw-empty-icon" aria-hidden="true">&#x1F50D;</div>
+                            <div class="qtw-empty-icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></div>
                             <strong>Keen Eye is ready</strong>
                             <p>Pick a symbol and timeframe above, then press Analyze. The full recommendation &mdash; trade setup, evidence, qualification gates and risk breakdown &mdash; appears here.</p>
                         </div>
@@ -1119,8 +1167,11 @@
     </div>
   </div>
 
-    <!-- TradingView Library -->
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <!-- The chart now uses TradingView's maintained embed-widget pipeline
+         (mounted per-render in renderChart), the same family as the ticker-tape.
+         The legacy s3.tradingview.com/tv.js library was removed: its
+         `new TradingView.widget()` embed is deprecated and prone to freezing
+         with no live data as TradingView rotates its chart backends. -->
 
     <!-- Quantitative analysis engine (load order matters: each builds on the last) -->
     <script src="engine/qt-config.js"></script>
@@ -1245,13 +1296,24 @@
         // ---------------------------------------------------------------
         // Ticker tape widget - mounted into the top ticker bar
         // ---------------------------------------------------------------
+        let tickerWatchdog = null;
+        let tickerRetries = 0;
         function mountTickerTape() {
-            const container = document.querySelector('#tickerTape .tradingview-widget-container__widget');
+            const wrap = document.getElementById('tickerTape');
+            const container = wrap && wrap.querySelector('.tradingview-widget-container__widget');
             if (!container) return;
+
+            // Idempotent: clear any prior render so a re-mount can't stack two
+            // scripts (a known cause of the tape rendering blank / disappearing).
+            container.innerHTML = '';
+            const stale = wrap.querySelector('script[data-ticker]');
+            if (stale) stale.remove();
+
             const script = document.createElement('script');
             script.type = 'text/javascript';
             script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
             script.async = true;
+            script.setAttribute('data-ticker', '1');
             script.textContent = JSON.stringify({
                 symbols: PAIRS.map(p => ({ proName: p.symbol, title: p.label.replace(/\s/g, '') })),
                 showSymbolLogo: true,
@@ -1264,6 +1326,17 @@
             });
             // The embed script renders into its own parent element.
             container.parentNode.appendChild(script);
+
+            // Watchdog: the embed occasionally fails to paint (script blocked, or
+            // it initialised while the Charts panel was hidden and sized to 0).
+            // If no iframe appears, re-mount once so the tape isn't left empty.
+            if (tickerWatchdog) clearTimeout(tickerWatchdog);
+            tickerWatchdog = setTimeout(function () {
+                if (!container.querySelector('iframe') && tickerRetries < 2) {
+                    tickerRetries++;
+                    mountTickerTape();
+                }
+            }, 4000);
         }
 
         // ---------------------------------------------------------------
@@ -1417,53 +1490,61 @@
             chartHost.appendChild(msg);
         }
 
+        // Mounts TradingView's maintained Advanced Chart embed. Unlike the
+        // legacy `new TradingView.widget()` (which froze with no live feed as
+        // TradingView rotated backends), this widget self-loads its script and
+        // data pipeline per render — the same mechanism as the working ticker.
         function renderChart() {
             const pair = PAIRS[activeIndex];
 
-            if (typeof TradingView === 'undefined' || typeof TradingView.widget !== 'function') {
-                showChartMessage('TradingView library failed to load. Check your network connection and reload.', true);
-                return;
-            }
-
-            // Tear down the previous widget and mount into a fresh container id,
-            // otherwise TradingView can keep the stale iframe around.
+            // Tear down the previous widget completely — a stale container keeps
+            // the old iframe (and its dead socket) around, which reads as a freeze.
             chartHost.innerHTML = '';
-            const containerId = 'tv_chart_' + (++widgetSeq);
-            const host = document.createElement('div');
-            host.id = containerId;
-            host.style.width = '100%';
-            host.style.height = '100%';
-            chartHost.appendChild(host);
+            widgetSeq++;
+
+            const container = document.createElement('div');
+            container.className = 'tradingview-widget-container';
+            container.style.width = '100%';
+            container.style.height = '100%';
+            const widgetDiv = document.createElement('div');
+            widgetDiv.className = 'tradingview-widget-container__widget';
+            widgetDiv.style.width = '100%';
+            widgetDiv.style.height = '100%';
+            container.appendChild(widgetDiv);
+            chartHost.appendChild(container);
 
             try {
-                new TradingView.widget({
-                    container_id: containerId,
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.async = true;
+                script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+                // The embed reads its config from the script's text content.
+                script.textContent = JSON.stringify({
                     symbol: pair.symbol,
                     interval: document.getElementById('intervalSelect').value,
-                    style: parseInt(document.getElementById('styleSelect').value, 10),
                     timezone: 'Etc/UTC',
                     theme: 'dark',
+                    // Chart style/interval are owned by the widget's own toolbar
+                    // now; candles (1) is the mount default.
+                    style: '1',
                     locale: 'en',
-                    toolbar_bg: '#1a1a2e',
                     enable_publishing: false,
-                    hide_top_toolbar: false,
-                    hide_legend: false,
-                    hide_side_toolbar: false,
                     allow_symbol_change: false,
-                    save_image: false,
-                    withdateranges: true,
-                    details: false,
-                    hotlist: false,
+                    hide_side_toolbar: false,
                     calendar: false,
                     studies: ['MASimple@tv-basicstudies'],
+                    support_host: 'https://www.tradingview.com',
                     autosize: true,
                     backgroundColor: '#1a1a2e',
                     gridColor: '#1e1e35'
-                    // NOTE: the free TradingView embed ignores `overrides`,
-                    // `enabled_features` and `favorites` entirely (verified by A/B
-                    // test at both file:// and http origins), so no chart-settings
-                    // options are passed here - they would be dead config.
                 });
+                // If the embed script itself fails to load (blocked/offline),
+                // surface an actionable message instead of a silent blank frame.
+                script.addEventListener('error', function () {
+                    showChartMessage('Chart failed to load for ' + pair.label +
+                        '. If you use a privacy/ad blocker (e.g. Brave Shields), allow tradingview.com for this site, then Reload.', true);
+                }, { once: true });
+                container.appendChild(script);
             } catch (err) {
                 console.error('TradingView widget failed:', err);
                 showChartMessage('Unable to render the chart for ' + pair.label + '.', true);
@@ -1471,7 +1552,6 @@
         }
 
         document.getElementById('intervalSelect').addEventListener('change', renderChart);
-        document.getElementById('styleSelect').addEventListener('change', renderChart);
         document.getElementById('reloadBtn').addEventListener('click', renderChart);
 
         // ---------------------------------------------------------------
@@ -1485,7 +1565,7 @@
         var WS_KEY = 'qt.workspace';
         var wsToggle = document.getElementById('wsToggle');
         var wsToggleIcon = document.getElementById('wsToggleIcon');
-        var WS_ICON = { charts: '\u{1F4C8}', keeneye: '\u{1F441}️' };   // 📈 chart / 👁️ eye
+        var WS_ICON = { charts: 'fa-chart-line', keeneye: 'fa-eye' };   // chart / eye (FontAwesome)
 
         function setWorkspace(ws) {
             ws = ws === 'keeneye' ? 'keeneye' : 'charts';
@@ -1496,9 +1576,10 @@
                 wsToggle.setAttribute('aria-pressed', String(ws === 'keeneye'));
                 wsToggle.setAttribute('aria-label', 'Switch to ' + nextLabel);
                 wsToggle.title = 'Switch to ' + nextLabel;
-                if (wsToggleIcon) wsToggleIcon.textContent = WS_ICON[ws];
+                if (wsToggleIcon) wsToggleIcon.className = 'fa-solid ' + WS_ICON[ws];
             }
-            try { localStorage.setItem(WS_KEY, ws); } catch (e) { /* storage may be unavailable */ }
+            // Only persist the workspace when Save Profile is Active.
+            if (profileSaveEnabled) { try { localStorage.setItem(WS_KEY, ws); } catch (e) { /* storage may be unavailable */ } }
             // TradingView autosizes on resize; nudge it when the chart reappears.
             if (ws === 'charts') {
                 requestAnimationFrame(function () { window.dispatchEvent(new Event('resize')); });
@@ -1512,24 +1593,31 @@
             });
         }
 
-        // ---- Save-profile toggle: persists its own ON/OFF state; icon is full
-        // brightness when ON, dimmed when OFF (see #saveProfileBtn CSS). ----
+        // ---- Save-profile toggle ----
+        // Its OWN ON/OFF state is always persisted (under SAVE_PROFILE_KEY) so the
+        // choice survives reloads. When ON it is the master switch that lets every
+        // other setting persist and restore; when OFF the app opens in defaults.
+        // Icon is full brightness when ON, dimmed when OFF (see #saveProfileBtn CSS).
         var SAVE_PROFILE_KEY = 'qt.profileSaveEnabled';
+        var profileSaveEnabled = false;   // authoritative gate (set in Init before restorePrefs)
         var saveProfileBtn = document.getElementById('saveProfileBtn');
-        function setSaveProfile(on) {
+        function setSaveProfile(on, capture) {
+            profileSaveEnabled = !!on;     // update the gate first so savePref() can write
             if (!saveProfileBtn) return;
             saveProfileBtn.setAttribute('aria-pressed', String(on));
             saveProfileBtn.title = on ? 'Profile preferences: saving' : 'Profile preferences: not saving';
             saveProfileBtn.setAttribute('aria-label', saveProfileBtn.title);
+            // The toggle's own state is stored unconditionally (not gated by itself).
             try { localStorage.setItem(SAVE_PROFILE_KEY, on ? '1' : '0'); } catch (e) { /* storage may be unavailable */ }
+            // On a user turning it ON, snapshot the present UI so it is remembered.
+            if (on && capture) persistCurrentSettings();
         }
         function wireSaveProfile() {
             if (!saveProfileBtn) return;
-            var stored = '0';
-            try { stored = localStorage.getItem(SAVE_PROFILE_KEY) || '0'; } catch (e) { /* storage may be unavailable */ }
-            setSaveProfile(stored === '1');
+            // Reflect the already-read gate into the button; do not re-capture here.
+            setSaveProfile(profileSaveEnabled, false);
             saveProfileBtn.addEventListener('click', function () {
-                setSaveProfile(saveProfileBtn.getAttribute('aria-pressed') !== 'true');
+                setSaveProfile(saveProfileBtn.getAttribute('aria-pressed') !== 'true', true);
             });
         }
 
@@ -1554,13 +1642,42 @@
             }
         }
 
+        // Proactively reflect the REAL proxy state instead of sitting at "Idle".
+        // Probes /api/v1/health on load and on an interval, and skips while an
+        // Analyze run owns the indicator (analysisInFlight) so it isn't clobbered.
+        var analysisInFlight = false;
+        function probeConnection() {
+            if (analysisInFlight) return;
+            if (!window.QT || !QT.app || typeof QT.app.checkHealth !== 'function') {
+                setConn('idle');
+                return;
+            }
+            QT.app.checkHealth().then(function (h) {
+                if (analysisInFlight) return;   // an Analyze run started meanwhile
+                if (h && h.ok) {
+                    setConn('ok', 'Proxy healthy' + (h.status && h.status !== 'ok' ? ' (' + h.status + ')' : '') + '.');
+                } else {
+                    setConn('error', 'Proxy unreachable — start it / enable the IIS reverse proxy.');
+                }
+            });
+        }
+
         // ---------------------------------------------------------------
         // Session persistence — reopen exactly as the user left it. Symbol,
-        // interval, profile and chart style join the already-persisted
-        // workspace and Trader/Analyst mode. Presentation state only.
+        // interval and profile join the already-persisted workspace and
+        // Trader/Analyst mode. (Chart style is no longer persisted — the
+        // TradingView toolbar owns it.) Presentation state only.
         // ---------------------------------------------------------------
-        var PREF = { symbol: 'qt.symbol', interval: 'qt.interval', profile: 'qt.profile', style: 'qt.style' };
-        function savePref(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage may be unavailable */ } }
+        var PREF = { symbol: 'qt.symbol', interval: 'qt.interval', profile: 'qt.profile' };
+        // Persistence is OFF by default: the app always opens in its default
+        // configuration. Only when the Save-Profile icon is Active does it both
+        // persist changes and restore the last custom settings on next load.
+        // `profileSaveEnabled` is the single gate; it is read from storage at the
+        // very top of Init (before restorePrefs) and kept in sync by setSaveProfile.
+        function savePref(k, v) {
+            if (!profileSaveEnabled) return;   // no writes unless Save Profile is Active
+            try { localStorage.setItem(k, v); } catch (e) { /* storage may be unavailable */ }
+        }
         function loadPref(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
         function setSelectValue(id, val) {
             var sel = document.getElementById(id);
@@ -1569,6 +1686,7 @@
             if (ok) sel.value = val;
         }
         function restorePrefs() {
+            if (!profileSaveEnabled) return;   // defaults unless Save Profile is Active
             var sym = loadPref(PREF.symbol);
             if (sym) {
                 for (var i = 0; i < PAIRS.length; i++) {
@@ -1576,21 +1694,34 @@
                 }
             }
             setSelectValue('intervalSelect', loadPref(PREF.interval));
-            setSelectValue('styleSelect', loadPref(PREF.style));
             setSelectValue('profileSelect', loadPref(PREF.profile));
+        }
+        // Snapshot the current UI into storage — used the moment the user turns
+        // the toggle ON, so "save from now on" captures the present state too.
+        function persistCurrentSettings() {
+            savePref(PREF.symbol, PAIRS[activeIndex].symbol);
+            var iv = document.getElementById('intervalSelect');
+            var pf = document.getElementById('profileSelect');
+            if (iv) savePref(PREF.interval, iv.value);
+            if (pf) savePref(PREF.profile, pf.value);
+            if (profileSaveEnabled) {
+                try { localStorage.setItem(WS_KEY, appEl.getAttribute('data-workspace') || 'charts'); } catch (e) {}
+                try { if (window.QT && QT.card) localStorage.setItem('qt.uiMode', QT.card.getMode()); } catch (e) {}
+            }
         }
         function wirePrefPersistence() {
             var iv = document.getElementById('intervalSelect');
-            var st = document.getElementById('styleSelect');
             var pf = document.getElementById('profileSelect');
             if (iv) iv.addEventListener('change', function () { savePref(PREF.interval, iv.value); });
-            if (st) st.addEventListener('change', function () { savePref(PREF.style, st.value); });
             if (pf) pf.addEventListener('change', function () { savePref(PREF.profile, pf.value); });
         }
 
         // ---------------------------------------------------------------
         // Init
         // ---------------------------------------------------------------
+        // Read the persistence gate FIRST, so restorePrefs() and every later
+        // read honour it. Default (unset/'0') => open in defaults.
+        try { profileSaveEnabled = (localStorage.getItem(SAVE_PROFILE_KEY) === '1'); } catch (e) { profileSaveEnabled = false; }
         restorePrefs();
         buildOptions();
         renderTrigger();
@@ -1600,7 +1731,10 @@
         wireWorkspaceSwitch();
         wireSaveProfile();
         wirePrefPersistence();
-        setConn('idle');
+        setConn('loading', 'Checking analysis proxy…');
+        probeConnection();
+        // Keep the indicator live — re-check the proxy every 60s.
+        setInterval(probeConnection, 60000);
 
         // ---------------------------------------------------------------
         // Trader / Analyst mode toggle — pure display switch (Phase 8.5).
@@ -1608,8 +1742,10 @@
         // this just reflects it into the radio pair and forwards changes.
         // Switching modes never re-fetches, re-analyzes, or re-renders.
         // ---------------------------------------------------------------
+        // Restore the saved Trader/Analyst mode only when Save Profile is Active;
+        // otherwise force the default (Trader) so the app opens in defaults.
         var modeRadios = document.querySelectorAll('input[name="uiMode"]');
-        var initialMode = QT.card.getMode();
+        var initialMode = profileSaveEnabled ? QT.card.getMode() : QT.card.setMode('trader');
         modeRadios.forEach(function (r) {
             r.checked = (r.value === initialMode);
             r.addEventListener('change', function () {
@@ -1628,6 +1764,7 @@
             // Results render in Keen Eye — surface it immediately so the user
             // sees the loading state and then the recommendation as it lands.
             setWorkspace('keeneye');
+            analysisInFlight = true;   // the health probe yields to the Analyze run
             setConn('loading', 'Analyzing ' + PAIRS[activeIndex].label + '…');
             QT.app.run({
                 symbol: PAIRS[activeIndex].symbol,
@@ -1636,6 +1773,7 @@
                 container: analysisCard,
                 button: analyzeBtn
             }).then(function (rec) {
+                analysisInFlight = false;
                 if (rec && rec.recommendation) {
                     setConn('ok', 'Analysis ready — ' + rec.recommendation.label + '.');
                 } else {
@@ -1649,7 +1787,9 @@
             // Restore the last workspace only after the chart mounts while Charts
             // is visible, so TradingView sizes correctly on first paint.
             var startWs = 'charts';
-            try { startWs = localStorage.getItem(WS_KEY) || 'charts'; } catch (e) { /* storage may be unavailable */ }
+            if (profileSaveEnabled) {
+                try { startWs = localStorage.getItem(WS_KEY) || 'charts'; } catch (e) { /* storage may be unavailable */ }
+            }
             setWorkspace(startWs);
         });
     </script>

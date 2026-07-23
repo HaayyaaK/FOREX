@@ -871,11 +871,14 @@
         var root = h('div', { class: 'qtw' });
         root.setAttribute('data-mode', CARD.getMode());
         root.appendChild(buildHero(rec, context));
+        // Trade Setup is promoted directly beneath the hero — the executable
+        // ticket is the highest-value block, so it leads the page (full-width,
+        // above the Executive Summary and the analysis grid).
+        root.appendChild(buildTrade(rec));
         root.appendChild(buildSummary(rec));
 
         var grid = h('div', { class: 'qtw-grid' });
         grid.appendChild(buildHealth(rec));
-        grid.appendChild(buildTrade(rec));
         grid.appendChild(buildStructure(rec));
         grid.appendChild(buildScores(rec));
         grid.appendChild(buildConfidence(rec));

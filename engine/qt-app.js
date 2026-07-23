@@ -27,7 +27,15 @@
         } catch (e) { /* storage may be unavailable */ }
         var loc = root.location;
         if (loc && loc.protocol.indexOf('http') === 0) {
-            return loc.protocol + '//' + loc.hostname + ':3001';
+            var h = loc.hostname;
+            // Local dev: talk to the Node proxy directly on :3001.
+            if (h === 'localhost' || h === '127.0.0.1') {
+                return loc.protocol + '//' + h + ':3001';
+            }
+            // Production (tunnelled domain): use the SAME origin so the IIS ARR
+            // reverse proxy forwards /api/* to 127.0.0.1:3001. The proxy port is
+            // never exposed publicly, and same-origin satisfies CSP connect-src 'self'.
+            return loc.origin;
         }
         return 'http://localhost:3001';
     }
@@ -53,6 +61,32 @@
                     }
                     return body;
                 });
+            });
+    };
+
+    /** The resolved proxy base URL (for diagnostics / status probes). */
+    APP.getProxyBase = function () { return resolveProxy(); };
+
+    /**
+     * Lightweight liveness probe of the analysis proxy (GET /api/v1/health).
+     * Resolves to { ok, status, body } — never rejects — so callers can drive a
+     * connection indicator without try/catch. Used by the header status chip so
+     * it reflects real reachability instead of sitting at a stale "Idle".
+     */
+    APP.checkHealth = function () {
+        var url = resolveProxy() + '/api/v1/health';
+        return fetch(url, { method: 'GET', cache: 'no-store' })
+            .then(function (res) {
+                return res.json().then(function (body) {
+                    var healthy = res.ok && (!body || body.ok !== false);
+                    var status = body && body.data && body.data.status;
+                    return { ok: healthy, status: status || (healthy ? 'ok' : 'error'), body: body };
+                }).catch(function () {
+                    return { ok: res.ok, status: res.ok ? 'ok' : 'error', body: null };
+                });
+            })
+            .catch(function (err) {
+                return { ok: false, status: 'unreachable', body: null, error: err };
             });
     };
 
