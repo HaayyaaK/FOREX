@@ -137,35 +137,49 @@ T.test('renders the hero, executive summary and all eight L2 cards', function ()
     T.equal(host().querySelectorAll('.qtw-hero').length, 1, 'exactly one hero');
 });
 
-T.test('every card is a native <details>/<summary> — accessible by construction', function () {
+// Supersedes "every card is a native <details>/<summary>". After the Keen Eye
+// rebuild only two panels still collapse — everything decision-relevant is
+// always visible, with no caret and nothing to click. See qt-card.js's
+// staticCard()/familyCard() vs section() split.
+T.test('only Technical Details and Engine Inspection collapse — every other card is a static, always-open panel', function () {
     var rec = buildRec(strongUp(300));
     QT.card.render(host(), rec);
     var cards = host().querySelectorAll('.qtw-card');
-    T.ok(cards.length >= 9, cards.length + ' disclosure cards');
+    T.ok(cards.length >= 9, cards.length + ' cards rendered');
+    var COLLAPSIBLE = { technical: true, inspection: true };
     Array.prototype.forEach.call(cards, function (c) {
-        T.equal(c.tagName, 'DETAILS', c.dataset.section + ' is a <details> element');
-        T.equal(c.querySelector(':scope > summary') ? c.querySelector(':scope > summary').tagName
-                : c.children[0].tagName, 'SUMMARY', c.dataset.section + ' has a <summary> header');
+        var id = c.dataset.section;
+        if (COLLAPSIBLE[id]) {
+            T.equal(c.tagName, 'DETAILS', id + ' is a <details> element');
+            T.ok(!!c.querySelector(':scope > summary'), id + ' has a <summary> header');
+        } else {
+            T.ok(c.tagName !== 'DETAILS', id + ' is NOT collapsible (no <details>)');
+            T.ok(!c.querySelector('.qtw-card-caret'), id + ' has no collapse caret');
+        }
     });
 });
 
-T.test('L1/L2/L3 cards default open, L4/L5 default closed', function () {
+T.test('Technical Details and Engine Inspection default closed; every other card has no open/closed state at all', function () {
     var rec = buildRec(strongUp(300));
     QT.card.render(host(), rec);
-    function isOpen(id) { return host().querySelector('.qtw-card[data-section="' + id + '"]').open; }
+    function card(id) { return host().querySelector('.qtw-card[data-section="' + id + '"]'); }
     ['executive', 'health', 'trade', 'structure', 'scores', 'confidence', 'evidence', 'gates', 'mtf']
-        .forEach(function (id) { T.ok(isOpen(id), id + ' is open by default'); });
-    T.ok(!isOpen('technical'), 'technical details closed by default');
-    T.ok(!isOpen('inspection'), 'engine inspection closed by default');
+        .forEach(function (id) { T.equal(card(id).open, undefined, id + ' is a plain element — "open" is not a concept for it'); });
+    T.equal(card('technical').open, false, 'technical details closed by default');
+    T.equal(card('inspection').open, false, 'engine inspection closed by default');
 });
 
-T.test('summary click toggles native <details> open state', function () {
+T.test('clicking a static card\'s header does nothing; clicking Technical Details\' summary still toggles it', function () {
     var rec = buildRec(strongUp(300));
     QT.card.render(host(), rec);
-    var d = host().querySelector('.qtw-card[data-section="trade"]');
-    var before = d.open;
-    d.querySelector('summary').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-    T.equal(d.open, !before, 'native details toggled on summary click');
+    var trade = host().querySelector('.qtw-card[data-section="trade"]');
+    trade.querySelector('.qtw-card-head').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    T.ok(!('open' in trade) || trade.tagName !== 'DETAILS', 'Trade Setup has no open state to toggle');
+
+    var tech = host().querySelector('.qtw-card[data-section="technical"]');
+    var before = tech.open;
+    tech.querySelector('summary').dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    T.equal(tech.open, !before, 'native details toggled on summary click');
 });
 
 T.test('hero displays the recommendation label and tone verbatim', function () {
@@ -230,17 +244,69 @@ T.test('unavailable gauge values render as "—", never a fabricated zero', func
     T.equal(tq.querySelector('.qtw-ring-value').textContent, '—', 'shows a dash, not 0%');
 });
 
-T.suite('Phase 8 — Trade Setup ticket');
+T.suite('Phase 8 — Trade Setup: Key Levels ladder');
 
-T.test('renders entry, stop and every target as ticket cells', function () {
+// Supersedes "renders entry, stop and every target as ticket cells" — the
+// grid-of-cells ticket was replaced by the price ladder (buildLadder in
+// qt-card.js): one row per level instead of one box per level.
+T.test('the ladder renders one row for entry, stop and every target', function () {
     var rec = buildRec(strongUp(300));
     if (!rec.trade) { T.pass('no trade in this fixture; covered by the no-trade suite'); return; }
     QT.card.render(host(), rec);
-    var cells = host().querySelectorAll('.qtw-card[data-section="trade"] .qtw-ticket-cell');
-    T.equal(cells.length, 2 + rec.trade.targets.length, 'entry + stop + targets');
+    var rows = host().querySelectorAll('.qtw-card[data-section="trade"] .qtw-ladder-row');
+    // entry + stop + targets, +1 more if a Ref. Close row was supplied (it
+    // wasn't here — render() was called with no context — so it's exactly this).
+    T.equal(rows.length, 2 + rec.trade.targets.length, 'entry + stop + targets, no Ref. Close row without context');
+    var labels = Array.prototype.map.call(rows, function (r) { return r.querySelector('.qtw-ladder-label').textContent; });
+    T.ok(labels.indexOf('Entry') !== -1, 'Entry row present');
+    T.ok(labels.indexOf(rec.trade.stop.id || 'Stop') !== -1, 'Stop row present');
+    rec.trade.targets.forEach(function (t) { T.ok(labels.indexOf(t.id) !== -1, t.id + ' row present'); });
     var text = host().querySelector('.qtw-card[data-section="trade"]').textContent;
-    rec.trade.targets.forEach(function (t) { T.ok(text.indexOf(t.id) !== -1, t.id + ' rendered'); });
     T.ok(text.indexOf('Expected Value') !== -1, 'expected value always displayed');
+});
+
+T.test('ladder rows are ordered by price, highest first, regardless of trade direction', function () {
+    var rec = buildRec(strongUp(300));
+    if (!rec.trade) { T.pass('no trade in this fixture'); return; }
+    QT.card.render(host(), rec);
+    var rows = host().querySelectorAll('.qtw-card[data-section="trade"] .qtw-ladder-row');
+    var prices = Array.prototype.map.call(rows, function (r) {
+        return QT.utils.formatPrice ? r.querySelector('.qtw-ladder-price').textContent : null;
+    });
+    // Re-derive numeric order from the rendered text via parseFloat (formatPrice
+    // may insert thousands separators/fixed decimals, both parseFloat-safe).
+    var numeric = prices.map(function (p) { return parseFloat(p.replace(/,/g, '')); });
+    for (var i = 1; i < numeric.length; i++) {
+        T.ok(numeric[i - 1] >= numeric[i], 'row ' + i + ' price (' + numeric[i] + ') <= previous row (' + numeric[i - 1] + ')');
+    }
+});
+
+T.test('a supplied Ref. Close context adds exactly one extra ladder row, never labelled "Current"', function () {
+    var rec = buildRec(strongUp(300));
+    if (!rec.trade) { T.pass('no trade in this fixture'); return; }
+    var withoutCtx = QT.card.render(host(), rec).querySelectorAll('.qtw-ladder-row').length;
+    var withCtx = QT.card.render(host(), rec, { price: rec.trade.entry.price * 1.001, priceTime: rec.barTime })
+        .querySelectorAll('.qtw-ladder-row').length;
+    T.equal(withCtx, withoutCtx + 1, 'exactly one row added for Ref. Close');
+    var labels = Array.prototype.map.call(host().querySelectorAll('.qtw-ladder-label'), function (l) { return l.textContent; });
+    T.ok(labels.indexOf('Ref. Close') !== -1, 'the extra row is labelled Ref. Close');
+    T.ok(labels.indexOf('Current') === -1, 'never labelled "Current" — same reasoning as the hero fix');
+});
+
+T.test('every ladder row has a proportional distance bar, and Entry itself renders at zero width', function () {
+    var rec = buildRec(strongUp(300));
+    if (!rec.trade) { T.pass('no trade in this fixture'); return; }
+    QT.card.render(host(), rec);
+    var rows = host().querySelectorAll('.qtw-card[data-section="trade"] .qtw-ladder-row');
+    Array.prototype.forEach.call(rows, function (row) {
+        var fill = row.querySelector('.qtw-ladder-bar-fill');
+        T.ok(!!fill, 'row has a distance bar');
+        var w = parseFloat(fill.getAttribute('style').match(/width:\s*([\d.]+)%/)[1]);
+        T.ok(w >= 0 && w <= 100, 'bar width (' + w + '%) is a valid percentage');
+        if (row.querySelector('.qtw-ladder-label').textContent === 'Entry') {
+            T.equal(w, 0, 'Entry is the reference point — zero distance from itself');
+        }
+    });
 });
 
 T.test('negative expected value is visually marked, never hidden', function () {
@@ -271,13 +337,13 @@ T.test('ATR value comes from positionRisk.volatilityExposure, not invented', fun
 
 T.suite('Phase 8 — Graceful degradation (no trade)');
 
-T.test('a no-trade recommendation renders no ticket cells and no fabricated values', function () {
+T.test('a no-trade recommendation renders no ladder and no fabricated values', function () {
     var rec = buildRec(ranging(300));
     QT.card.render(host(), rec);
     if (rec.trade) { T.pass('fixture produced a trade; skipped'); return; }
     var tradeCard = host().querySelector('.qtw-card[data-section="trade"]');
     T.ok(!!tradeCard.querySelector('.qtw-no-trade'), 'no-trade block rendered');
-    T.equal(tradeCard.querySelectorAll('.qtw-ticket-cell').length, 0, 'zero ticket cells');
+    T.equal(tradeCard.querySelectorAll('.qtw-ladder-row').length, 0, 'zero ladder rows');
     T.ok(tradeCard.textContent.indexOf(rec.reasoning.primaryReason) !== -1, 'primary reason shown');
 });
 
@@ -457,16 +523,38 @@ T.test('engine inspection shows version metadata and the raw inspection payload'
 
 T.suite('Phase 8 — The one deliberate render-context extension (current price)');
 
-T.test('an optional context renders a reference price using the shared formatter', function () {
+// The fact is labelled "Ref. Close", not "Reference Price"/"Price": it is the
+// last CLOSED bar the engine analysed, frozen at analysis time, and it now sits
+// beside a live TradingView quote. Naming it generically invited exactly the
+// confusion of reading a stale number as the current market price.
+T.test('an optional context renders a reference close using the shared formatter', function () {
     var rec = buildRec(strongUp(300));
     QT.card.render(host(), rec, { price: 66123.456, priceTime: rec.barTime });
     var facts = host().querySelectorAll('.qtw-hero-facts .qtw-fact');
     var priceFact = Array.prototype.filter.call(facts, function (f) {
-        return f.querySelector('.qtw-fact-label').textContent === 'Reference Price';
+        return f.querySelector('.qtw-fact-label').textContent === 'Ref. Close';
     })[0];
-    T.ok(!!priceFact, 'reference price fact rendered when context is supplied');
-    T.equal(priceFact.querySelector('.qtw-fact-value').textContent, QT.utils.formatPrice(66123.456),
+    T.ok(!!priceFact, 'reference close fact rendered when context is supplied');
+    if (!priceFact) return;   // don't cascade into a TypeError on the assertions below
+
+    var value = priceFact.querySelector('.qtw-fact-value').textContent;
+    T.equal(value.indexOf(QT.utils.formatPrice(66123.456)), 0,
             'formatted with the same shared price formatter used elsewhere');
+    T.ok(/\(\d{2}:\d{2} UTC\)$/.test(value),
+         'carries the bar timestamp, so a stale close cannot read as a live price');
+});
+
+T.test('a reference close with no usable timestamp omits the stamp rather than faking one', function () {
+    var rec = buildRec(strongUp(300));
+    QT.card.render(host(), rec, { price: 66123.456, priceTime: null });
+    var facts = host().querySelectorAll('.qtw-hero-facts .qtw-fact');
+    var priceFact = Array.prototype.filter.call(facts, function (f) {
+        return f.querySelector('.qtw-fact-label').textContent === 'Ref. Close';
+    })[0];
+    T.ok(!!priceFact, 'fact still renders without a timestamp');
+    if (!priceFact) return;
+    T.equal(priceFact.querySelector('.qtw-fact-value').textContent,
+            QT.utils.formatPrice(66123.456), 'price alone, no fabricated stamp');
 });
 
 T.test('omitting context degrades gracefully — no fact, no error', function () {
@@ -474,9 +562,32 @@ T.test('omitting context degrades gracefully — no fact, no error', function ()
     QT.card.render(host(), rec);   // no third argument at all
     var facts = host().querySelectorAll('.qtw-hero-facts .qtw-fact');
     var hasPriceFact = Array.prototype.some.call(facts, function (f) {
-        return f.querySelector('.qtw-fact-label').textContent === 'Reference Price';
+        return f.querySelector('.qtw-fact-label').textContent === 'Ref. Close';
     });
-    T.ok(!hasPriceFact, 'no reference-price fact fabricated when context is absent');
+    T.ok(!hasPriceFact, 'no reference-close fact fabricated when context is absent');
+});
+
+// The live-quote slot is a mount point only: the engine must never emit vendor
+// markup, a script tag, or a network reference of its own. It lives in Trade
+// Setup (under the Key Levels ladder), not the hero — so it only appears
+// alongside an actual trade, where there's something to compare it against.
+T.test('the live-quote slot is an empty mount point, and only appears with a symbol AND a trade', function () {
+    var rec = buildRec(strongUp(300));
+    if (!rec.trade) { T.pass('no trade in this fixture; slot has nothing to sit beside'); return; }
+
+    QT.card.render(host(), rec, { price: 100, tvSymbol: 'FX:EURUSD' });
+    var slot = host().querySelector('.qtw-live-quote');
+    T.ok(!!slot, 'slot rendered when a TradingView symbol is supplied');
+    if (slot) {
+        T.equal(slot.getAttribute('data-tv-symbol'), 'FX:EURUSD', 'carries the symbol for the shell to read');
+        T.equal(slot.children.length, 0, 'engine leaves the slot empty — the shell fills it');
+        T.ok(!/tradingview/i.test(slot.innerHTML), 'engine emits no vendor markup');
+    }
+    var label = host().querySelector('.qtw-live-quote-label');
+    T.ok(!!label && /reference only/i.test(label.textContent), 'label states plainly that this is reference-only, not used in calculation');
+
+    QT.card.render(host(), rec, { price: 100 });
+    T.ok(!host().querySelector('.qtw-live-quote'), 'no slot without a symbol');
 });
 
 T.test('rec object passed to render is never mutated', function () {
@@ -674,8 +785,13 @@ T.test('the toggle reflects the persisted mode on load and forwards changes with
     var inline = DASHBOARD_HTML.match(/<script>\s*'use strict';[\s\S]*?<\/script>/)[0];
     T.ok(/QT\.card\.getMode\(\)/.test(inline), 'initial radio state is read from QT.card.getMode()');
     T.ok(/QT\.card\.setMode\(/.test(inline), 'changes are forwarded to QT.card.setMode()');
+    // \r?\n, not \n: dashboard.html is stored with CRLF line endings, so the
+    // original `-{5,}\n` lookahead could never match and this assertion failed
+    // open — it reported a failure no matter what the code did, which is just as
+    // useless as passing no matter what.
+    var modeBlockMatch = inline.match(/Trader \/ Analyst mode toggle[\s\S]*?(?=\/\/ -{5,}\r?\n\s*\/\/ Analyze)/);
+    T.ok(!!modeBlockMatch, 'mode-toggle block is delimited as expected');
     ['fetchBundle', 'analyzeBundle', 'QT.app.run'].forEach(function (fn) {
-        var modeBlockMatch = inline.match(/Trader \/ Analyst mode toggle[\s\S]*?(?=\/\/ -{5,}\n\s*\/\/ Analyze)/);
         T.ok(modeBlockMatch && modeBlockMatch[0].indexOf(fn) === -1, 'mode-toggle block does not call ' + fn);
     });
 });
@@ -735,9 +851,36 @@ T.test('cleanly-passing and informational gate rows are analyst-only; failing/un
     });
 });
 
-T.test('the grid uses dense packing so a hidden/wide neighbour never strands a half-width card', function () {
-    T.ok(/\.qtw-grid\s*\{[^}]*grid-auto-flow:\s*dense/.test(DASHBOARD_HTML),
-         'grid-auto-flow: dense is applied to .qtw-grid');
+// Extends the former "grid uses dense packing" test. Dense packing is retained,
+// but it only ever addressed gaps left by WIDE neighbours. The other gap source
+// was `align-items: start`, which let a short card sit beside a tall one with
+// dead space below it; that is now fixed at the source by stretching. The column
+// count is no longer hard-coded either.
+T.test('the card grid is fluid and stretches, so differing card heights leave no gaps', function () {
+    var grid = /\.qtw-grid\s*\{([^}]*)\}/.exec(DASHBOARD_HTML);
+    T.ok(!!grid, '.qtw-grid rule found');
+    var body = grid ? grid[1] : '';
+
+    T.ok(/repeat\(\s*auto-fit\s*,\s*minmax\(/.test(body),
+         'column count is derived from available width via auto-fit + minmax');
+    T.ok(/minmax\(\s*min\(/.test(body),
+         'minmax floor is wrapped in min() so it cannot overflow narrow viewports');
+    T.ok(/align-items:\s*stretch/.test(body),
+         'cards stretch to their row height, so a short card leaves no dead space');
+    // Dense is still required: .qtw-wide cards split the normal-width ones, so
+    // in Trader mode (several cards hidden) a lone card would otherwise sit in a
+    // 3-column row with two empty cells beside it.
+    T.ok(/grid-auto-flow:\s*dense/.test(body),
+         'dense packing lets a later card backfill the hole a wide neighbour leaves');
+    T.ok(!/grid-template-columns:\s*repeat\(\s*\d+\s*,/.test(body),
+         'no hard-coded column count remains');
+});
+
+// The <details> cards must NOT be given a flex/grid display box: several engines
+// leak the collapsed content into view when a <details> host is not a block box.
+T.test('card shells are never given a flex or grid display box', function () {
+    T.ok(!/\.qtw-card\s*\{[^}]*display:\s*(flex|grid)/.test(DASHBOARD_HTML),
+         '.qtw-card keeps its default block display so collapsed cards stay collapsed');
 });
 
 T.test('the mirror trader-only visibility rule exists for Analyst Mode', function () {
@@ -808,7 +951,7 @@ T.test('a below-minimum bar count produces DATA_INSUFFICIENT and renders without
     var root;
     try { root = QT.card.render(host(), rec); } catch (e) { T.fail('render threw', e.stack); return; }
     T.ok(!!root, 'rendered without throwing on minimal data');
-    T.ok(!root.querySelector('.qtw-ticket'), 'no ticket cells fabricated for insufficient data');
+    T.ok(!root.querySelector('.qtw-ladder-row'), 'no ladder rows fabricated for insufficient data');
     QT.card.setMode('analyst');
     try { QT.card.render(host(), rec); T.pass('analyst mode also renders minimal-data rec without throwing'); }
     catch (e) { T.fail('analyst mode threw on minimal data', e.stack); }
@@ -983,8 +1126,10 @@ T.suite('Phase 8.7 — UX polish: session persistence, empty state, focus');
 
 var INLINE = DASHBOARD_HTML.match(/<script>\s*'use strict';[\s\S]*?<\/script>/)[0];
 
-T.test('symbol, interval, profile and chart style are all persisted (reopen as left)', function () {
-    ['qt.symbol', 'qt.interval', 'qt.profile', 'qt.style'].forEach(function (k) {
+T.test('symbol, interval and profile are all persisted (reopen as left)', function () {
+    // The chart-style picker was removed (the Charts-workspace TradingView widget
+    // supplies its own), so there is no longer a 'qt.style' key to persist.
+    ['qt.symbol', 'qt.interval', 'qt.profile'].forEach(function (k) {
         T.ok(INLINE.indexOf("'" + k + "'") !== -1, 'persistence key present: ' + k);
     });
     T.ok(/function restorePrefs\(/.test(INLINE), 'restorePrefs() defined');
@@ -1060,13 +1205,18 @@ T.test('hero shows trend direction, duration in candles, and timeframe (all real
     T.ok(tl.textContent.indexOf(rec.timeframe) !== -1, 'shows the analysis timeframe');
 });
 
-T.test('hero ladder shows Current, Entry, one Stop and every TP — verbatim from the trade object', function () {
+// The ladder's first cell is "Ref. Close", never "Current": it is the last
+// closed bar, and a live quote now sits directly above it in the hero. Two
+// prices that disagree, one of them labelled "Current", is a misread waiting to
+// happen — so the stale one says plainly what it is.
+T.test('hero ladder shows Ref. Close, Entry, one Stop and every TP — verbatim from the trade object', function () {
     var rec = buildRec(strongUp(300));
     if (!rec.trade) { T.pass('no trade in fixture; covered by no-trade case'); return; }
     QT.card.render(host(), rec, { price: 123.45, priceTime: rec.barTime });
     var cells = host().querySelectorAll('.qtw-hero-strip .qtw-hs-cell');
     var labels = Array.prototype.map.call(cells, function (c) { return c.querySelector('.qtw-hs-label').textContent; });
-    T.ok(labels.indexOf('Current') !== -1, 'current price cell present');
+    T.ok(labels.indexOf('Ref. Close') !== -1, 'reference-close cell present');
+    T.ok(labels.indexOf('Current') === -1, 'no cell mislabels the stale close as "Current"');
     T.ok(labels.indexOf('Entry') !== -1, 'entry cell present');
     rec.trade.targets.forEach(function (tp) { T.ok(labels.indexOf(tp.id) !== -1, tp.id + ' cell present'); });
     var entryCell = Array.prototype.filter.call(cells, function (c) { return c.querySelector('.qtw-hs-label').textContent === 'Entry'; })[0];
@@ -1124,15 +1274,18 @@ T.test('the mobile hamburger menu was removed completely', function () {
 
 T.test('Calculator and Save-Profile are icon-only buttons in a fixed header-actions group', function () {
     T.ok(/class="header-actions"/.test(DASHBOARD_HTML), 'header-actions container present');
-    T.ok(/id="calcLink"[^>]*href="protrade_calc\.html"/.test(DASHBOARD_HTML), 'Calculator points to protrade_calc.html at the root');
+    T.ok(/id="calcLink"[^>]*href="calc\.html"/.test(DASHBOARD_HTML), 'Calculator points to calc.html at the root');
     T.ok(/id="calcLink"[^>]*target="_blank"/.test(DASHBOARD_HTML), 'opens in a new tab (does not lose app state)');
     T.ok(/id="saveProfileBtn"/.test(DASHBOARD_HTML), 'Save-profile button present');
     // Icon-only: no visible TEXT CONTENT (the rendered part between tags) — the
     // accessible name comes entirely from aria-label/title, not visible text.
     var calc = DASHBOARD_HTML.match(/<a class="icon-btn" id="calcLink"[\s\S]*?<\/a>/)[0];
     var save = DASHBOARD_HTML.match(/<button type="button" class="icon-btn" id="saveProfileBtn"[\s\S]*?<\/button>/)[0];
-    var calcText = calc.replace(/^<a[^>]*>/, '').replace(/<\/a>$/, '');
-    var saveText = save.replace(/^<button[^>]*>/, '').replace(/<\/button>$/, '');
+    // Strip ALL tags (including the child <i> icon glyph) so only real text nodes
+    // remain — the icon is drawn via a FontAwesome <i class="fa-…">, whose class
+    // names are markup, not visible text.
+    var calcText = calc.replace(/<[^>]*>/g, '');
+    var saveText = save.replace(/<[^>]*>/g, '');
     T.ok(!/[A-Za-z]{3,}/.test(calcText), 'Calculator button renders no visible text, only its icon glyph');
     T.ok(!/[A-Za-z]{3,}/.test(saveText), 'Save-profile button renders no visible text, only its icon glyph');
 });

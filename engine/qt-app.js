@@ -163,7 +163,14 @@
          * holds, passed as the renderer's optional third argument so the card
          * can show a reference price without the engine's JSON changing. */
         var lastBar = bars[bars.length - 1];
-        var context = { price: lastBar ? lastBar.close : null, priceTime: lastBar ? lastBar.time : null };
+        var context = {
+            price: lastBar ? lastBar.close : null,
+            priceTime: lastBar ? lastBar.time : null,
+            // TradingView-style symbol ("FX:EURUSD") - cfg.symbols is keyed by it,
+            // so data.symbol already carries that exact form. Presentation-only:
+            // the shell uses it to mount the live quote embed in the hero.
+            tvSymbol: data.symbol || null
+        };
 
         return { rec: rec, context: context };
     };

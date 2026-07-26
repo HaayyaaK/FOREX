@@ -14,21 +14,42 @@
  * The recommendation object (`rec`) has no "current price" field — it was
  * never part of the Phase 7 contract, and that contract is unchanged here.
  * `CARD.render(container, rec, context)` accepts an OPTIONAL third argument,
- * `context = { price, priceTime }`, which the caller (qt-app.js) may populate
- * from the raw bars it already fetched (bars[last].close) — no new
- * calculation, just forwarding data qt-app.js already holds. This is a
- * rendering-call extension, not a change to the engine or its JSON output;
- * `rec` itself is read verbatim and `context` is entirely optional — the
- * hero degrades to "—" for price when it is omitted.
+ * `context = { price, priceTime, tvSymbol }`, which the caller (qt-app.js) may
+ * populate from data it already holds (bars[last].close/.time and the symbol) —
+ * no new calculation, just forwarding. This is a rendering-call extension, not a
+ * change to the engine or its JSON output; `rec` itself is read verbatim and
+ * `context` is entirely optional — the hero degrades to "—" for price when it is
+ * omitted.
  *
- * Five progressive-disclosure levels, using native <details>/<summary> for
- * accessible, keyboard-operable expand/collapse with zero extra JS:
- *   L1 Hero + Executive Summary   (always open)
- *   L2 Market Health / Trade / Structure / Scores / Confidence / Evidence /
- *      Gates / MTF               (open by default — compact enough to scan)
- *   L3 Warnings                  (open when present)
- *   L4 Technical Details         (closed by default)
- *   L5 Engine Inspection         (closed by default, developer/diagnostic)
+ * `tvSymbol` renders an EMPTY `.qtw-live-quote` slot (inside Trade Setup, right
+ * under the Key Levels ladder) and nothing more. The shell (dashboard.html)
+ * mounts a TradingView quote embed into it; this module emits no vendor markup
+ * and makes no network call. That embed is a cross-origin iframe, so its price
+ * is display-only and unreadable by JS — never depend on its value, and it is
+ * labelled "reference only, not used in calculation" for exactly that reason.
+ *
+ * LAYOUT (rebuilt from the original 5-level disclosure system):
+ * Only two panels still collapse — Technical Details and Engine Inspection,
+ * built by `section()` as native <details>/<summary>, closed by default. They
+ * are genuinely diagnostic: nothing in them is needed to read the signal.
+ * Every other panel (Hero, Executive Summary, Trade Setup, Market Health,
+ * Market Structure, Score Breakdown, Confidence Breakdown, Evidence,
+ * Qualification Gates, MTF Consensus, Warnings) is built by `staticCard()` /
+ * `familyCard()` and is ALWAYS visible — no caret, nothing to click. Hiding
+ * decision-relevant content behind a collapse control was exactly the "hard
+ * to recognize" complaint this layout replaced.
+ *
+ * DATA-TYPE FAMILIES: familyCard() tags each panel into one of four colour-
+ * coded families so a reader can recognise a card's kind before reading a
+ * word of it — an amber left border + ruler/timeline icon means "price
+ * levels & structure" (Trade Setup, Market Structure); teal + heartbeat icon
+ * means "market pulse" (Market Health); violet + gauge/list icon means
+ * "confidence & scoring" (Confidence, Scores, MTF); slate + scale/checklist
+ * icon means "evidence & gates" (Evidence, Gates). Executive Summary and
+ * Warnings carry no family — they are narrative/severity content, not a data
+ * type. The Trader/Analyst visibility split (below) is unchanged and is
+ * orthogonal to family colour: a card's family never changes, only whether
+ * it's shown.
  *
  * PHASE 8.5 — DUAL INTERFACE MODES (Trader / Analyst):
  * `rec` is rendered exactly once per `CARD.render()` call; mode is a purely
@@ -135,6 +156,22 @@
     }
     function price(v) { return QT.utils ? QT.utils.formatPrice(v) : (isFinite(v) ? String(v) : '—'); }
     function dash(v) { return (v === null || v === undefined || v === '') ? '—' : v; }
+
+    /**
+     * " (14:00 UTC)" for a bar timestamp, or '' when there isn't a usable one.
+     * Bar times are epoch MILLISECONDS (qt-data.js builds them with Date.parse).
+     * UTC is used verbatim because the analysis timeframe is UTC-anchored;
+     * re-expressing it in local time would misalign it with the candle.
+     */
+    function barStamp(t) {
+        // typeof check first: isFinite(null) is TRUE (Number(null) === 0), which
+        // would render a missing timestamp as a confident "(00:00 UTC)".
+        if (typeof t !== 'number' || !isFinite(t)) return '';
+        var d = new Date(t);
+        if (isNaN(d.getTime())) return '';
+        var p = function (n) { return n < 10 ? '0' + n : String(n); };
+        return ' (' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ' UTC)';
+    }
 
     function timeStr(ms) {
         if (!isFinite(ms)) return '—';
@@ -273,6 +310,23 @@
 
     /* ================================================================
      * Structural sections
+     *
+     * Two constructors, two purposes — deliberately not unified:
+     *
+     * `section()` is the ONLY constructor that emits <details>/<summary>. It
+     * is used for exactly two panels now: Technical Details and Engine
+     * Inspection — deep, diagnostic content that is genuinely meant to stay
+     * tucked away until asked for. The interactive affordance (pointer
+     * cursor, hover highlight, caret) is scoped in CSS to the <summary> tag,
+     * so it can never leak onto a static card by accident.
+     *
+     * `staticCard()` / `familyCard()` render a plain, always-visible panel
+     * with no collapse behaviour at all. Every other card content-block
+     * (hero-adjacent summary, trade levels, health, structure, scores,
+     * confidence, evidence, gates, MTF) uses one of these: the "hard to
+     * recognize" complaint about the old layout was partly that collapsible
+     * chrome (carets, click affordances) was applied uniformly to content
+     * that should always just be visible.
      * ================================================================ */
     function section(id, level, title, opts) {
         opts = opts || {};
@@ -292,6 +346,42 @@
         d._body = body;
         d.dataset.section = id;
         return d;
+    }
+
+    /**
+     * A plain, non-collapsible card. `opts.family` tags it into one of the
+     * four data-type families (see the CSS token block for the palette);
+     * omit it for a card that doesn't belong to a family (Executive Summary,
+     * Warnings — narrative/severity content, not a data type).
+     */
+    function staticCard(id, title, opts) {
+        opts = opts || {};
+        var cls = 'qtw-card qtw-static' +
+                  (opts.wide ? ' qtw-wide' : '') +
+                  (opts.family ? ' qtw-fam-' + opts.family : '') +
+                  (opts.scope === 'analyst' ? ' qtw-analyst-only' : '');
+        var d = h('div', { class: cls });
+        var head = h('div', { class: 'qtw-card-head' });
+        if (opts.icon) {
+            head.appendChild(h('span', { class: 'qtw-fam-icon', 'aria-hidden': 'true' },
+                [h('i', { class: 'fa-solid ' + opts.icon })]));
+        }
+        head.appendChild(h('h3', { class: 'qtw-card-title', text: title }));
+        if (opts.meta) head.appendChild(h('span', { class: 'qtw-card-meta', text: opts.meta }));
+        d.appendChild(head);
+        var body = h('div', { class: 'qtw-card-body' });
+        d.appendChild(body);
+        d._body = body;
+        d.dataset.section = id;
+        return d;
+    }
+
+    /** A staticCard() pre-tagged with one of the four data-type families. */
+    function familyCard(id, family, icon, title, opts) {
+        opts = opts || {};
+        opts.family = family;
+        opts.icon = icon;
+        return staticCard(id, title, opts);
     }
 
     function chip(label, tone, opts) {
@@ -359,7 +449,10 @@
         }
         fact('Symbol', rec.symbol || '—');
         fact('Timeframe', rec.timeframe || '—');
-        if (ctx && isFinite(ctx.price)) fact('Reference Price', price(ctx.price));
+        // Named "Ref. Close", not "Price": this is the last CLOSED bar the engine
+        // actually analysed, frozen at analysis time. The live quote mounted
+        // below moves independently, and conflating the two would be misleading.
+        if (ctx && isFinite(ctx.price)) fact('Ref. Close', price(ctx.price) + barStamp(ctx.priceTime));
         fact('Regime', rec.regime.name);
         fact('Signal Quality', rec.metrics.tradeQuality !== null && rec.metrics.tradeQuality !== undefined
             ? pct(rec.metrics.tradeQuality * 100) : '—');
@@ -378,7 +471,11 @@
                 h('span', { class: 'qtw-hs-value', text: value })
             ]));
         }
-        if (ctx && isFinite(ctx.price)) hs('Current', price(ctx.price));
+        // Labelled "Ref. Close", not "Current". This is the last CLOSED bar, and
+        // the live quote sits directly above it in the hero — calling a stale
+        // number "Current" beside a moving one that disagrees with it was
+        // actively misleading (they differ by whatever the bar has since moved).
+        if (ctx && isFinite(ctx.price)) hs('Ref. Close', price(ctx.price));
         if (rec.trade && rec.trade.entry) {
             hs('Entry', price(rec.trade.entry.price), 'ai');
             hs(rec.trade.stop.id || 'Stop', price(rec.trade.stop.price), 'bear');
@@ -395,7 +492,7 @@
      * Executive summary
      * ================================================================ */
     function buildSummary(rec) {
-        var s = section('executive', 1, 'Executive Summary', { meta: null });
+        var s = staticCard('executive', 'Executive Summary', {});
         s.classList.add('qtw-summary');
         s._body.appendChild(h('p', { class: 'qtw-exec', text: rec.explanations.executive }));
         var row = h('div', { class: 'qtw-exec-row' });
@@ -416,7 +513,7 @@
      * 2. Market Health panel
      * ================================================================ */
     function buildHealth(rec) {
-        var s = section('health', 2, 'Market Health');
+        var s = familyCard('health', 'pulse', 'fa-heart-pulse', 'Market Health');
         var grid = h('div', { class: 'qtw-gauges' });
         var dims = rec.trend.dimensions || {};
         var riskQ = (rec.inspection.contributions || []).filter(function (c) { return c.id === 'riskQuality'; })[0];
@@ -445,9 +542,61 @@
     /* ================================================================
      * 3. Trade Setup ticket (or graceful no-trade)
      * ================================================================ */
-    function buildTrade(rec) {
+    /**
+     * The Key Levels ladder: Entry, the single tiered stop, every target, and
+     * (when available) the Ref. Close — one row per level, ordered by raw
+     * price (highest at top), which is why a bullish trade's targets land
+     * above Entry and a bearish trade's land below it without any direction
+     * branching here. Each row's bar length is that level's distance from
+     * Entry as a fraction of the FARTHEST level's distance — a proportional
+     * read of "how far", not a true price-scale plot (a real-money ladder from
+     * a chart library would be overkill for a handful of levels, and a naive
+     * absolute-price scale would put a Fibonacci-golden-zone stop and a 3R
+     * target so close together they'd be illegible on a phone).
+     */
+    function buildLadder(t, ctx) {
+        var rows = [
+            { label: 'Entry', price: t.entry.price, tone: 'ai', sub: t.entry.name },
+            { label: t.stop.id || 'Stop', price: t.stop.price, tone: 'bear',
+              sub: t.stop.basis + ' · ' + num(t.stop.distanceAtr) + ' ATR' }
+        ];
+        (t.targets || []).forEach(function (tp) {
+            rows.push({ label: tp.id, price: tp.price, tone: 'bull',
+                        sub: 'R:R ' + num(tp.rr) + ' · ' + pct(tp.probability * 100) + ' prob' });
+        });
+        // Ref. Close, not Current: same reasoning as the hero (qt-app.js
+        // forwards the last CLOSED bar, not a live tick) - naming it "Current"
+        // here would repeat the exact confusion already fixed in the hero.
+        if (ctx && isFinite(ctx.price)) {
+            rows.push({ label: 'Ref. Close', price: ctx.price, tone: 'neutral', sub: barStamp(ctx.priceTime).trim() });
+        }
+        rows = rows.filter(function (r) { return isFinite(r.price); });
+        rows.sort(function (a, b) { return b.price - a.price; });   // highest price at top, direction-agnostic
+
+        var entryPrice = t.entry.price;
+        var maxDist = 0;
+        rows.forEach(function (r) { maxDist = Math.max(maxDist, Math.abs(r.price - entryPrice)); });
+
+        var ladder = h('div', { class: 'qtw-ladder', role: 'img',
+            'aria-label': 'Price ladder spanning ' + price(rows[rows.length - 1].price) + ' to ' + price(rows[0].price) });
+        rows.forEach(function (r) {
+            var barPct = maxDist > 0 ? clamp01(Math.abs(r.price - entryPrice) / maxDist) * 100 : 0;
+            var row = h('div', { class: 'qtw-ladder-row qtw-tone-' + r.tone });
+            row.appendChild(h('span', { class: 'qtw-ladder-dot', 'aria-hidden': 'true' }));
+            row.appendChild(h('span', { class: 'qtw-ladder-label', text: r.label }));
+            row.appendChild(h('span', { class: 'qtw-ladder-price', text: price(r.price) }));
+            var bar = h('div', { class: 'qtw-ladder-bar' });
+            bar.appendChild(h('span', { class: 'qtw-ladder-bar-fill', style: 'width:' + barPct.toFixed(1) + '%' }));
+            row.appendChild(bar);
+            row.appendChild(h('span', { class: 'qtw-ladder-sub', text: r.sub || '' }));
+            ladder.appendChild(row);
+        });
+        return ladder;
+    }
+
+    function buildTrade(rec, ctx) {
         var tradeable = rec.trade && rec.trade.entry;
-        var s = section('trade', 2, 'Trade Setup', {
+        var s = familyCard('trade', 'levels', 'fa-ruler-vertical', 'Trade Setup', {
             wide: true,
             meta: tradeable ? (rec.recommendation.direction === 'bullish' ? 'LONG' : 'SHORT') : 'NO TICKET'
         });
@@ -468,23 +617,35 @@
         }
 
         var t = rec.trade;
-        var ticket = h('div', { class: 'qtw-ticket' });
+        s._body.appendChild(buildLadder(t, ctx));
 
-        function cell(label, value, sub, tone2) {
-            ticket.appendChild(h('div', { class: 'qtw-ticket-cell' + (tone2 ? ' qtw-tone-' + tone2 : '') }, [
-                h('span', { class: 'qtw-ticket-label', text: label }),
-                h('span', { class: 'qtw-ticket-value', text: value }),
-                sub ? h('span', { class: 'qtw-ticket-sub', text: sub }) : null
+        // ---- Live quote slot -------------------------------------------------
+        // An EMPTY mount point only. The engine stays free of vendor/network
+        // code: the shell (dashboard.html) owns every TradingView embed and is
+        // the only thing that knows the PAIRS symbol map, so it fills this in
+        // after render. If nothing mounts it, the slot collapses to nothing and
+        // the card reads exactly as it did before. Sits directly under the
+        // ladder — not up in the hero — so a reader can compare the live number
+        // against Entry/Stop/Targets in the same glance, without scrolling.
+        //
+        // Why an embed and not a number: the Advanced Chart is a cross-origin
+        // iframe with no readable price API, so a TradingView-sourced live price
+        // can only be another widget. It is display-only - JS cannot read it, so
+        // nothing here or downstream may depend on its value. The explicit
+        // "reference only" label says so directly: this never feeds the R:R,
+        // the gates, or any other calculation on the page.
+        if (ctx && ctx.tvSymbol) {
+            var quoteWrap = h('div', { class: 'qtw-live-quote-wrap' });
+            quoteWrap.appendChild(h('div', { class: 'qtw-live-quote-label' }, [
+                h('span', { class: 'qtw-live-dot', 'aria-hidden': 'true' }),
+                h('span', { text: 'Live Price' }),
+                h('span', { class: 'qtw-live-quote-note', text: '— reference only, not used in calculation' })
             ]));
+            var quote = h('div', { class: 'qtw-live-quote', 'data-tv-symbol': ctx.tvSymbol });
+            quote.setAttribute('aria-label', 'Live market price — reference only, not used in calculation');
+            quoteWrap.appendChild(quote);
+            s._body.appendChild(quoteWrap);
         }
-
-        cell('Entry', price(t.entry.price), t.entry.name);
-        cell('Stop Loss', price(t.stop.price),
-            t.stop.id + ' · ' + num(t.stop.distanceAtr) + ' ATR · ' + t.stop.basis, 'bear');
-        (t.targets || []).forEach(function (tp) {
-            cell(tp.id, price(tp.price), 'R:R ' + num(tp.rr) + ' · ' + pct(tp.probability * 100) + ' prob', 'bull');
-        });
-        s._body.appendChild(ticket);
 
         var metrics = h('div', { class: 'qtw-metricrow' });
         var rr = t.riskReward;
@@ -504,6 +665,7 @@
 
         // Levels: S/R, Fibonacci, Confluence — all already computed by qt-levels.
         if (t.levels) {
+            s._body.appendChild(h('h4', { class: 'qtw-subhead', text: 'Key Zones' }));
             var lv = h('div', { class: 'qtw-levels' });
             var sr = h('div', { class: 'qtw-level-col' });
             sr.appendChild(h('h4', { text: 'Support / Resistance' }));
@@ -550,7 +712,7 @@
      * 4. Market Structure timeline
      * ================================================================ */
     function buildStructure(rec) {
-        var s = section('structure', 2, 'Market Structure', { wide: true, scope: 'analyst',
+        var s = familyCard('structure', 'levels', 'fa-timeline', 'Market Structure', { wide: true, scope: 'analyst',
             meta: rec.inspection.structureSummary.bias });
         var st = rec.inspection.structureSummary;
 
@@ -591,7 +753,7 @@
      * 5. Score breakdown
      * ================================================================ */
     function buildScores(rec) {
-        var s = section('scores', 2, 'Score Breakdown', { wide: true, scope: 'analyst' });
+        var s = familyCard('scores', 'confidence', 'fa-list-ol', 'Score Breakdown', { wide: true, scope: 'analyst' });
         var list = h('div', { class: 'qtw-barlist' });
         (rec.inspection.contributions || []).forEach(function (c) {
             var row = h('div', { class: 'qtw-barrow' });
@@ -618,7 +780,7 @@
      * 6. Confidence breakdown
      * ================================================================ */
     function buildConfidence(rec) {
-        var s = section('confidence', 2, 'Confidence Breakdown', { scope: 'analyst' });
+        var s = familyCard('confidence', 'confidence', 'fa-gauge-high', 'Confidence Breakdown', { scope: 'analyst' });
         var body = s._body;
 
         function row(label, value01, tone2) {
@@ -647,7 +809,7 @@
      * 7. Supporting vs Opposing evidence
      * ================================================================ */
     function buildEvidence(rec) {
-        var s = section('evidence', 2, 'Evidence', { wide: true });
+        var s = familyCard('evidence', 'evidence', 'fa-scale-balanced', 'Evidence', { wide: true });
         var cols = h('div', { class: 'qtw-evidence-cols' });
 
         function col(title, items, tone2) {
@@ -671,7 +833,7 @@
      * 8. Qualification gates
      * ================================================================ */
     function buildGates(rec) {
-        var s = section('gates', 2, 'Qualification Gates', { wide: true,
+        var s = familyCard('gates', 'evidence', 'fa-list-check', 'Qualification Gates', { wide: true,
             meta: rec.tradeQualification.gates.passed ? 'PASSED' : 'BLOCKED' });
         var body = s._body;
         var gateCount = 0, passCount = 0, failedIds = [];
@@ -721,7 +883,7 @@
      * ================================================================ */
     function buildMtf(rec) {
         var m = rec.mtf;
-        var s = section('mtf', 2, 'Multi-Timeframe Consensus', { meta: titleCase(m.action) });
+        var s = familyCard('mtf', 'confidence', 'fa-code-compare', 'Multi-Timeframe Consensus', { meta: titleCase(m.action) });
         var body = s._body;
         body.appendChild(h('p', { class: 'qtw-exec-note', text: m.reason }));
         if (m.consensus) {
@@ -753,7 +915,7 @@
         var groups = {};
         rec.warnings.forEach(function (w) { (groups[w.source] = groups[w.source] || []).push(w.message); });
 
-        var s = section('warnings', 3, 'Warnings', { meta: String(rec.warnings.length) });
+        var s = staticCard('warnings', 'Warnings', { meta: String(rec.warnings.length) });
         s.classList.add('qtw-warncard');
         Object.keys(groups).forEach(function (src) {
             var g = h('div', { class: 'qtw-warngroup' });
@@ -874,7 +1036,7 @@
         // Trade Setup is promoted directly beneath the hero — the executable
         // ticket is the highest-value block, so it leads the page (full-width,
         // above the Executive Summary and the analysis grid).
-        root.appendChild(buildTrade(rec));
+        root.appendChild(buildTrade(rec, context));
         root.appendChild(buildSummary(rec));
 
         var grid = h('div', { class: 'qtw-grid' });
