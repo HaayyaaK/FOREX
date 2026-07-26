@@ -13,7 +13,8 @@ var SUITES = [
     './phase6-scoring.test.js',
     './phase7-recommendation.test.js',
     './phase8-presentation.test.js',
-    './phase9-backtest.test.js'
+    './phase9-backtest.test.js',
+    './phase10-validation.test.js'
 ];
 
 var all = [];

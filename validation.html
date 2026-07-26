@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Strategy Validation</title>
+    <!-- Locally hosted FontAwesome 7. No CDN. -->
+    <link rel="stylesheet" href="assets/fontawesome-free-7.3.1-web/css/all.min.css">
+    <style>
+        /* ==============================================================
+           validation.html — Strategy Validation Dashboard.
+
+           A UI surface over the EXISTING backtester (backtest/qt-backtest.js).
+           It computes NOTHING itself: it fetches OHLCV through the same proxy
+           bundle the dashboard uses, hands the bars to QTBacktest.run /
+           .walkForward / .monteCarlo, and renders their output. This mirrors
+           the architecture rule — presentation never calculates — and keeps
+           the backtester as the single source of every number shown here.
+
+           Design system mirrors dashboard.html / calc.html: same tokens, same
+           dark surface language, same WCAG-verified brand/action palette.
+           Fully self-contained: no Tailwind, no Chart.js — charts are inline SVG.
+           ============================================================== */
+        :root {
+            color-scheme: dark;
+
+            --c-bg: #0f0f1a;
+            --c-surface: #12121f;
+            --c-surface-2: #1a1a2e;
+            --c-surface-3: #14142a;
+            --c-elevated: #23234a;
+            --c-border: #2a2a4a;
+            --c-border-soft: #1e1e35;
+            --c-border-hover: #3a3a5f;
+            --c-text: #e0e0e0;
+            --c-text-strong: #ffffff;
+            --c-text-dim: #888888;
+            --c-text-faint: #8a8ab2;
+            --c-text-muted: #8a8aa4;
+            --c-accent: #7b2ff7;
+            --c-accent-2: #00d4ff;
+
+            --c-brand-1:  #22d3ee;
+            --c-brand-2:  #818cf8;
+            --c-action-1: #4f46e5;
+            --c-action-2: #7c3aed;
+            --grad-brand: linear-gradient(90deg, var(--c-brand-1), var(--c-brand-2));
+            --grad-action: linear-gradient(135deg, var(--c-action-1), var(--c-action-2));
+
+            --c-bull: #2fd480;  --c-bull-soft: rgba(47, 212, 128, 0.14);
+            --c-bear: #ff5d6c;  --c-bear-soft: rgba(255, 93, 108, 0.14);
+            --c-warn: #ffb020;  --c-warn-soft: rgba(255, 176, 32, 0.14);
+            --c-info: #3aa8ff;  --c-info-soft: rgba(58, 168, 255, 0.14);
+
+            --sp-1: clamp(2px, 0.25vw, 4px);
+            --sp-2: clamp(4px, 0.5vw, 8px);
+            --sp-3: clamp(7px, 0.85vw, 12px);
+            --sp-4: clamp(10px, 1.25vw, 18px);
+            --sp-5: clamp(14px, 1.75vw, 26px);
+
+            --fs-2xs: clamp(0.58rem, 0.52rem + 0.18vw, 0.7rem);
+            --fs-xs:  clamp(0.68rem, 0.62rem + 0.2vw, 0.8rem);
+            --fs-sm:  clamp(0.76rem, 0.7rem + 0.22vw, 0.9rem);
+            --fs-md:  clamp(0.84rem, 0.78rem + 0.25vw, 1rem);
+            --fs-lg:  clamp(1.05rem, 0.88rem + 0.78vw, 1.5rem);
+
+            --r-sm: 4px; --r-md: 6px; --r-lg: 8px;
+            --card-radius: 14px;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+            --hairline: 1px;
+            --control-h: clamp(30px, 1.7rem + 0.8vw, 40px);
+        }
+        @media (min-resolution: 1.5dppx) { :root { --hairline: 0.5px; } }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { height: 100%; }
+        body {
+            background: var(--c-bg);
+            color: var(--c-text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: var(--fs-md);
+            min-height: 100%;
+            padding-bottom: calc(var(--sp-5) + env(safe-area-inset-bottom, 0px));
+        }
+        .mono { font-family: 'Consolas', 'SFMono-Regular', 'Menlo', monospace; font-variant-numeric: tabular-nums; }
+
+        /* ---------------- Header ---------------- */
+        .header {
+            background: linear-gradient(135deg, var(--c-surface-2) 0%, #16213e 100%);
+            padding: var(--sp-3) var(--sp-5);
+            display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
+            border-bottom: var(--hairline) solid var(--c-border);
+            position: sticky; top: 0; z-index: 50;
+        }
+        .header h1 {
+            font-size: var(--fs-lg); font-weight: 600; line-height: 1.2;
+            background: var(--grad-brand); -webkit-background-clip: text;
+            background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .header h1 .brand-ico {
+            -webkit-text-fill-color: var(--c-brand-1); color: var(--c-brand-1);
+            font-size: 0.9em; margin-right: 0.4em;
+        }
+        .header-sub { font-size: var(--fs-2xs); color: var(--c-text-dim); text-transform: uppercase; letter-spacing: 1px; }
+        .header-actions { display: inline-flex; align-items: center; gap: var(--sp-2); margin-left: auto; }
+
+        .status-chip {
+            display: inline-flex; align-items: center; gap: var(--sp-2);
+            height: var(--control-h); padding: 0 var(--sp-3);
+            background: var(--c-surface); border: var(--hairline) solid var(--c-border);
+            border-radius: var(--r-md); font-size: var(--fs-xs); color: var(--c-text-faint);
+        }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c-text-dim); flex: none; }
+        .status-dot.ok { background: var(--c-bull); box-shadow: 0 0 6px var(--c-bull); }
+        .status-dot.bad { background: var(--c-bear); box-shadow: 0 0 6px var(--c-bear); }
+
+        .icon-btn {
+            display: inline-flex; align-items: center; gap: var(--sp-2);
+            height: var(--control-h); padding: 0 var(--sp-3);
+            background: var(--c-surface-2); border: var(--hairline) solid var(--c-border);
+            border-radius: var(--r-md); cursor: pointer; color: var(--c-text);
+            text-decoration: none; font-size: var(--fs-sm); font-family: inherit;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .icon-btn:hover { background: var(--c-elevated); border-color: var(--c-border-hover); }
+        .icon-btn i { color: var(--c-brand-1); }
+
+        /* ---------------- Layout ---------------- */
+        .wrap { padding: var(--sp-4) var(--sp-5); max-width: 1500px; margin: 0 auto; }
+
+        /* ---------------- Controls ---------------- */
+        .controls {
+            display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-4);
+            padding: var(--sp-4); background: var(--c-surface); border: var(--hairline) solid var(--c-border);
+            border-radius: var(--card-radius); margin-bottom: var(--sp-4);
+        }
+        .field { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 120px; }
+        .field label { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.6px; color: var(--c-text-faint); }
+        .field select {
+            height: var(--control-h); padding: 0 var(--sp-3);
+            background: var(--c-surface-2); color: var(--c-text);
+            border: var(--hairline) solid var(--c-border); border-radius: var(--r-md);
+            font-family: inherit; font-size: var(--fs-sm); cursor: pointer; min-width: 120px;
+        }
+        .field select:focus-visible { outline: 2px solid var(--c-brand-1); outline-offset: 1px; }
+        .run-btn {
+            height: var(--control-h); padding: 0 var(--sp-5);
+            background: var(--grad-action); color: #fff; font-weight: 600;
+            border: none; border-radius: var(--r-md); cursor: pointer; font-size: var(--fs-sm);
+            font-family: inherit; display: inline-flex; align-items: center; gap: var(--sp-2);
+            transition: filter 0.2s, opacity 0.2s;
+        }
+        .run-btn:hover { filter: brightness(1.1); }
+        .run-btn:disabled { opacity: 0.5; cursor: progress; }
+
+        /* ---------------- Banner ---------------- */
+        .banner {
+            display: flex; gap: var(--sp-3); align-items: flex-start;
+            padding: var(--sp-3) var(--sp-4); border-radius: var(--r-lg);
+            background: var(--c-warn-soft); border: var(--hairline) solid rgba(255,176,32,0.35);
+            color: #ffd98a; font-size: var(--fs-xs); line-height: 1.5; margin-bottom: var(--sp-4);
+        }
+        .banner i { color: var(--c-warn); margin-top: 2px; flex: none; }
+        .banner strong { color: var(--c-warn); }
+
+        /* ---------------- Cards ---------------- */
+        .card {
+            background: var(--c-surface); border: var(--hairline) solid var(--c-border);
+            border-radius: var(--card-radius); padding: var(--sp-4); margin-bottom: var(--sp-4);
+        }
+        .card-title {
+            display: flex; align-items: center; gap: var(--sp-2);
+            font-size: var(--fs-md); font-weight: 600; color: var(--c-text-strong);
+            margin-bottom: var(--sp-4);
+        }
+        .card-title i { color: var(--c-brand-1); }
+        .card-title .meta { margin-left: auto; font-size: var(--fs-xs); font-weight: 400; color: var(--c-text-faint); }
+
+        /* ---------------- Metric tiles ---------------- */
+        .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--sp-3); }
+        .tile {
+            background: var(--c-surface-2); border: var(--hairline) solid var(--c-border-soft);
+            border-radius: var(--r-lg); padding: var(--sp-3) var(--sp-4);
+        }
+        .tile .k { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.6px; color: var(--c-text-faint); }
+        .tile .v { font-size: var(--fs-lg); font-weight: 700; color: var(--c-text-strong); margin-top: var(--sp-1); }
+        .tile .sub { font-size: var(--fs-2xs); color: var(--c-text-dim); margin-top: 2px; }
+        .v.pos { color: var(--c-bull); } .v.neg { color: var(--c-bear); } .v.neutral { color: var(--c-text-strong); }
+
+        /* ---------------- Funnel / bars ---------------- */
+        .funnel { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: var(--sp-3); }
+        .funnel .tile .v { font-size: var(--fs-md); }
+        .distrib { margin-top: var(--sp-4); display: flex; flex-direction: column; gap: var(--sp-2); }
+        .distrib-row { display: grid; grid-template-columns: 150px 1fr 46px; align-items: center; gap: var(--sp-3); font-size: var(--fs-xs); }
+        .distrib-row .name { color: var(--c-text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bar-track { height: 10px; background: var(--c-surface-3); border-radius: 5px; overflow: hidden; }
+        .bar-fill { height: 100%; background: var(--grad-brand); border-radius: 5px; }
+        .distrib-row .cnt { text-align: right; color: var(--c-text); }
+
+        /* ---------------- Equity SVG ---------------- */
+        .chart-box { width: 100%; overflow-x: auto; }
+        svg.equity { width: 100%; height: 260px; display: block; }
+        .eq-grid { stroke: var(--c-border-soft); stroke-width: 1; }
+        .eq-zero { stroke: var(--c-text-dim); stroke-width: 1; stroke-dasharray: 3 3; }
+        .eq-line { fill: none; stroke: var(--c-brand-1); stroke-width: 2; }
+        .eq-area { fill: url(#eqGrad); opacity: 0.85; }
+        .eq-label { fill: var(--c-text-faint); font-size: 11px; font-family: 'Consolas', monospace; }
+
+        /* ---------------- Tables ---------------- */
+        .tbl-scroll { width: 100%; overflow-x: auto; }
+        table.data { width: 100%; border-collapse: collapse; font-size: var(--fs-xs); min-width: 520px; }
+        table.data th, table.data td { padding: var(--sp-2) var(--sp-3); text-align: right; white-space: nowrap; }
+        table.data th:first-child, table.data td:first-child { text-align: left; }
+        table.data thead th {
+            color: var(--c-text-faint); font-weight: 600; text-transform: uppercase;
+            font-size: var(--fs-2xs); letter-spacing: 0.5px; border-bottom: var(--hairline) solid var(--c-border);
+        }
+        table.data tbody tr { border-bottom: var(--hairline) solid var(--c-border-soft); }
+        table.data tbody tr:hover { background: var(--c-surface-2); }
+        td.pos { color: var(--c-bull); } td.neg { color: var(--c-bear); }
+        .pill { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: var(--fs-2xs); font-weight: 600; }
+        .pill.bull { background: var(--c-bull-soft); color: var(--c-bull); }
+        .pill.bear { background: var(--c-bear-soft); color: var(--c-bear); }
+
+        /* ---------------- States ---------------- */
+        .state { text-align: center; padding: clamp(40px, 12vh, 120px) var(--sp-4); color: var(--c-text-faint); }
+        .state i { font-size: 2.4rem; color: var(--c-text-dim); margin-bottom: var(--sp-3); display: block; }
+        .state h2 { font-size: var(--fs-lg); color: var(--c-text-strong); margin-bottom: var(--sp-2); }
+        .state p { font-size: var(--fs-sm); max-width: 460px; margin: 0 auto; line-height: 1.5; }
+        .state.error i { color: var(--c-bear); }
+        .spinner {
+            width: 34px; height: 34px; border: 3px solid var(--c-border);
+            border-top-color: var(--c-brand-1); border-radius: 50%;
+            margin: 0 auto var(--sp-3); animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .hidden { display: none !important; }
+
+        /* ---------------- Footer ---------------- */
+        .footer {
+            padding: var(--sp-4) var(--sp-5); text-align: center;
+            font-size: var(--fs-2xs); color: var(--c-text-dim);
+            border-top: var(--hairline) solid var(--c-border-soft); margin-top: var(--sp-4);
+        }
+        .footer a { color: var(--c-text-faint); }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1><i class="fa-solid fa-flask-vial brand-ico" aria-hidden="true"></i>Strategy Validation</h1>
+        <span class="header-sub">Backtest Lab</span>
+        <div class="header-actions">
+            <span class="status-chip" id="statusChip" title="Proxy connection">
+                <span class="status-dot" id="statusDot"></span><span id="statusText">Checking…</span>
+            </span>
+            <a class="icon-btn" id="dashLink" href="dashboard.html"
+               aria-label="Back to Dashboard" title="Back to Dashboard">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Dashboard
+            </a>
+        </div>
+    </header>
+
+    <div class="wrap">
+        <!-- Controls -->
+        <div class="controls" role="group" aria-label="Backtest parameters">
+            <div class="field">
+                <label for="symbolSelect">Symbol</label>
+                <select id="symbolSelect"></select>
+            </div>
+            <div class="field">
+                <label for="intervalSelect">Interval</label>
+                <select id="intervalSelect">
+                    <option value="1">1m</option>
+                    <option value="5">5m</option>
+                    <option value="15">15m</option>
+                    <option value="30">30m</option>
+                    <option value="60">1h</option>
+                    <option value="240">4h</option>
+                    <option value="D" selected>D</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="profileSelect">Strategy Profile</label>
+                <select id="profileSelect"></select>
+            </div>
+            <button type="button" class="run-btn" id="runBtn">
+                <i class="fa-solid fa-play" aria-hidden="true"></i> Run Validation
+            </button>
+        </div>
+
+        <!-- Permanent honesty banner (surfaces the platform's core caveat). -->
+        <div class="banner" role="note">
+            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+            <span>
+                <strong>Educational validation only — not financial advice, no profitability claim.</strong>
+                Results are computed by the same deterministic engine the dashboard uses, replayed
+                bar-by-bar with no future-data leakage. History depth is limited by the data provider,
+                so trade counts are typically well below the 1,000+ needed for statistical significance.
+                Read every metric as a <em>stability check on available data</em>, not a validated edge.
+                All strategy weights remain calibration assumptions.
+            </span>
+        </div>
+
+        <!-- States -->
+        <div class="state" id="emptyState">
+            <i class="fa-solid fa-vials" aria-hidden="true"></i>
+            <h2>Ready to validate</h2>
+            <p>Pick a symbol, interval and strategy profile, then <strong>Run Validation</strong>.
+               The backtester replays the engine across the fetched history and reports trade
+               performance, an equity curve, walk-forward stability and a Monte-Carlo distribution.</p>
+        </div>
+
+        <div class="state hidden" id="loadingState">
+            <div class="spinner" aria-hidden="true"></div>
+            <h2>Running backtest…</h2>
+            <p id="loadingDetail">Fetching history through the proxy and replaying the engine bar-by-bar.</p>
+        </div>
+
+        <div class="state error hidden" id="errorState">
+            <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+            <h2 id="errorTitle">Validation failed</h2>
+            <p id="errorDetail"></p>
+        </div>
+
+        <!-- Results -->
+        <div id="results" class="hidden">
+            <div class="card">
+                <div class="card-title">
+                    <i class="fa-solid fa-chart-simple" aria-hidden="true"></i> Performance Summary
+                    <span class="meta" id="summaryMeta"></span>
+                </div>
+                <div class="tiles" id="summaryTiles"></div>
+            </div>
+
+            <div class="card" id="equityCard">
+                <div class="card-title">
+                    <i class="fa-solid fa-chart-line" aria-hidden="true"></i> Equity Curve
+                    <span class="meta">cumulative R (risk multiples)</span>
+                </div>
+                <div class="chart-box"><div id="equityChart"></div></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <i class="fa-solid fa-filter" aria-hidden="true"></i> Signal Funnel &amp; Regime Mix
+                    <span class="meta">why the engine traded or refused</span>
+                </div>
+                <div class="funnel" id="funnelTiles"></div>
+                <div class="distrib" id="regimeDistrib"></div>
+            </div>
+
+            <div class="card" id="wfCard">
+                <div class="card-title">
+                    <i class="fa-solid fa-arrows-left-right-to-line" aria-hidden="true"></i> Walk-Forward Stability
+                    <span class="meta" id="wfMeta"></span>
+                </div>
+                <div id="wfBody"></div>
+            </div>
+
+            <div class="card" id="mcCard">
+                <div class="card-title">
+                    <i class="fa-solid fa-dice" aria-hidden="true"></i> Monte-Carlo Resample
+                    <span class="meta">1,000 seeded trade-order shuffles</span>
+                </div>
+                <div id="mcBody"></div>
+            </div>
+
+            <div class="card" id="tradesCard">
+                <div class="card-title">
+                    <i class="fa-solid fa-list-ol" aria-hidden="true"></i> Trade Log
+                    <span class="meta" id="tradesMeta"></span>
+                </div>
+                <div class="tbl-scroll"><table class="data" id="tradesTable"></table></div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        © 2026 hayyaak.com · Strategy Validation Lab ·
+        <a href="disclaimer.html">Disclaimer — not financial advice</a>
+    </footer>
+
+    <!-- Engine (same load order as dashboard.html) + backtester + orchestration app. -->
+    <script src="engine/qt-config.js"></script>
+    <script src="engine/qt-utils.js"></script>
+    <script src="engine/qt-indicators.js"></script>
+    <script src="engine/qt-detection.js"></script>
+    <script src="engine/qt-candles.js"></script>
+    <script src="engine/qt-structure.js"></script>
+    <script src="engine/qt-chart-patterns.js"></script>
+    <script src="engine/qt-patterns.js"></script>
+    <script src="engine/qt-trend.js"></script>
+    <script src="engine/qt-levels.js"></script>
+    <script src="engine/qt-risk.js"></script>
+    <script src="engine/qt-sentiment.js"></script>
+    <script src="engine/qt-profiles.js"></script>
+    <script src="engine/qt-scoring.js"></script>
+    <script src="engine/qt-recommendation.js"></script>
+    <script src="engine/qt-card.js"></script>
+    <script src="engine/qt-app.js"></script>
+    <script src="backtest/qt-backtest.js"></script>
+    <script>
+        'use strict';
+        // ============================================================
+        // Orchestration only — every number rendered here comes straight
+        // out of QTBacktest. This script fetches, calls, and formats.
+        // ============================================================
+        var $ = function (id) { return document.getElementById(id); };
+
+        // ---- Formatting helpers ----
+        function fmtR(v) {
+            if (v === null || v === undefined || !isFinite(v)) return v === Infinity ? '∞' : '—';
+            return (v > 0 ? '+' : '') + v.toFixed(2) + 'R';
+        }
+        function fmtNum(v, dp) {
+            if (v === null || v === undefined) return '—';
+            if (v === Infinity) return '∞';
+            if (!isFinite(v)) return '—';
+            return v.toFixed(dp === undefined ? 2 : dp);
+        }
+        function fmtPct(v) {
+            if (v === null || v === undefined || !isFinite(v)) return '—';
+            return (v * 100).toFixed(1) + '%';
+        }
+        function toneClass(v) { return v > 0 ? 'pos' : (v < 0 ? 'neg' : 'neutral'); }
+        function esc(s) { return String(s).replace(/[&<>"]/g, function (c) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
+        function fmtDate(t) {
+            if (!t && t !== 0) return '—';
+            var d = new Date(t);
+            if (isNaN(d.getTime())) return '—';
+            return d.toISOString().slice(0, 10);
+        }
+
+        // ---- Engine-sourced option lists ----
+        var BASE_CFG = QT.profiles.applyProfile('balanced');
+        function populateControls() {
+            var symSel = $('symbolSelect');
+            var symbols = BASE_CFG.symbols || {};
+            Object.keys(symbols).forEach(function (key) {
+                var o = document.createElement('option');
+                o.value = key;
+                o.textContent = (symbols[key].td || key) + '  (' + (symbols[key].class || '?') + ')';
+                symSel.appendChild(o);
+            });
+            var profSel = $('profileSelect');
+            QT.profiles.list().forEach(function (p) {
+                var o = document.createElement('option');
+                o.value = p.id;
+                o.textContent = p.name || p.id;
+                if (p.id === 'balanced') o.selected = true;
+                profSel.appendChild(o);
+            });
+        }
+
+        // ---- Connection status ----
+        function probeHealth() {
+            QT.app.checkHealth().then(function (r) {
+                $('statusDot').className = 'status-dot ' + (r.ok ? 'ok' : 'bad');
+                $('statusText').textContent = r.ok ? 'Connected' : 'Unreachable';
+            });
+        }
+
+        // ---- State switching ----
+        function showOnly(id) {
+            ['emptyState', 'loadingState', 'errorState', 'results'].forEach(function (s) {
+                $(s).classList.toggle('hidden', s !== id);
+            });
+        }
+
+        // ---- Renderers ----
+        function tile(k, v, tone, sub) {
+            return '<div class="tile"><div class="k">' + esc(k) + '</div>' +
+                   '<div class="v ' + (tone || 'neutral') + '">' + v + '</div>' +
+                   (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + '</div>';
+        }
+
+        function renderSummary(res) {
+            var m = res.metrics;
+            $('summaryMeta').textContent = res.range.bars + ' bars · ' +
+                fmtDate(res.range.startTime) + ' → ' + fmtDate(res.range.endTime) +
+                ' · profile: ' + res.profile;
+
+            if (!m || m.trades === 0) {
+                $('summaryTiles').innerHTML =
+                    tile('Trades', '0', 'neutral', 'no entries generated') +
+                    tile('Evaluations', String(res.counters.evaluations), 'neutral') +
+                    tile('Refusals', String(res.counters.refusals), 'neutral', 'engine declined to trade') +
+                    tile('Blocked by MTF', String(res.counters.blockedByMtf), 'neutral');
+                return;
+            }
+            var t = $('summaryTiles');
+            t.innerHTML =
+                tile('Trades', String(m.trades), 'neutral', m.wins + 'W / ' + m.losses + 'L') +
+                tile('Win Rate', fmtPct(m.winRate), toneClass(m.winRate - 0.5)) +
+                tile('Expectancy', fmtR(m.expectancyR), toneClass(m.expectancyR), 'per trade') +
+                tile('Total', fmtR(m.totalR), toneClass(m.totalR)) +
+                tile('Profit Factor', fmtNum(m.profitFactor), toneClass((m.profitFactor || 0) - 1)) +
+                tile('Payoff Ratio', fmtNum(m.payoffRatio), 'neutral', 'avg win / avg loss') +
+                tile('Sharpe', fmtNum(m.sharpe), toneClass(m.sharpe), 'per-trade R') +
+                tile('Sortino', fmtNum(m.sortino), toneClass(m.sortino), 'per-trade R') +
+                tile('Max Drawdown', fmtR(-m.maxDrawdownR), 'neg', m.maxDrawdownBars + ' bars') +
+                tile('Avg Win', fmtR(m.averageWinR), 'pos') +
+                tile('Avg Loss', fmtR(-m.averageLossR), 'neg') +
+                tile('Avg Hold', fmtNum(m.duration.averageBars, 1), 'neutral', 'bars');
+        }
+
+        function renderEquity(res) {
+            var pts = res.equityCurve || [];
+            var box = $('equityChart');
+            if (pts.length < 2) { $('equityCard').classList.add('hidden'); return; }
+            $('equityCard').classList.remove('hidden');
+
+            var W = 900, H = 260, padL = 44, padR = 12, padT = 14, padB = 26;
+            var iw = W - padL - padR, ih = H - padT - padB;
+            var eq = pts.map(function (p) { return p.equityR; });
+            var minY = Math.min(0, Math.min.apply(null, eq));
+            var maxY = Math.max(0, Math.max.apply(null, eq));
+            if (maxY === minY) maxY = minY + 1;
+            var n = pts.length;
+            function sx(i) { return padL + (n === 1 ? 0 : (i / (n - 1)) * iw); }
+            function sy(v) { return padT + (1 - (v - minY) / (maxY - minY)) * ih; }
+
+            var line = '', area = 'M' + sx(0) + ' ' + sy(eq[0]);
+            for (var i = 0; i < n; i++) {
+                line += (i === 0 ? 'M' : 'L') + sx(i).toFixed(1) + ' ' + sy(eq[i]).toFixed(1) + ' ';
+                if (i > 0) area += ' L' + sx(i).toFixed(1) + ' ' + sy(eq[i]).toFixed(1);
+            }
+            area += ' L' + sx(n - 1).toFixed(1) + ' ' + sy(minY).toFixed(1) +
+                    ' L' + sx(0).toFixed(1) + ' ' + sy(minY).toFixed(1) + ' Z';
+
+            var zeroY = sy(0);
+            var ticks = '';
+            [minY, (minY + maxY) / 2, maxY].forEach(function (val) {
+                var y = sy(val).toFixed(1);
+                ticks += '<line class="eq-grid" x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '"/>' +
+                         '<text class="eq-label" x="4" y="' + (+y + 3) + '">' + val.toFixed(1) + 'R</text>';
+            });
+
+            box.innerHTML =
+                '<svg class="equity" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" ' +
+                'aria-label="Cumulative R equity curve across ' + n + ' closed trades">' +
+                '<defs><linearGradient id="eqGrad" x1="0" y1="0" x2="0" y2="1">' +
+                '<stop offset="0%" stop-color="#22d3ee" stop-opacity="0.28"/>' +
+                '<stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/></linearGradient></defs>' +
+                ticks +
+                '<line class="eq-zero" x1="' + padL + '" y1="' + zeroY.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + zeroY.toFixed(1) + '"/>' +
+                '<path class="eq-area" d="' + area + '"/>' +
+                '<path class="eq-line" d="' + line + '"/>' +
+                '</svg>';
+        }
+
+        function renderFunnel(res) {
+            var c = res.counters;
+            $('funnelTiles').innerHTML =
+                tile('Evaluations', String(c.evaluations), 'neutral', 'bars the engine assessed') +
+                tile('Signals', String(c.signals), 'neutral', 'tradeable proposals') +
+                tile('Refusals', String(c.refusals), 'neutral', 'no-trade outcomes') +
+                tile('Blocked by MTF', String(c.blockedByMtf), 'neutral', 'multi-timeframe veto');
+
+            var counts = c.regimeCounts || {};
+            var keys = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; });
+            var total = keys.reduce(function (s, k) { return s + counts[k]; }, 0) || 1;
+            $('regimeDistrib').innerHTML = keys.length ? keys.map(function (k) {
+                var pct = (counts[k] / total) * 100;
+                return '<div class="distrib-row"><span class="name" title="' + esc(k) + '">' + esc(k) + '</span>' +
+                       '<span class="bar-track"><span class="bar-fill" style="width:' + pct.toFixed(1) + '%"></span></span>' +
+                       '<span class="cnt mono">' + counts[k] + '</span></div>';
+            }).join('') : '<div class="sub" style="color:var(--c-text-dim)">No regime data recorded.</div>';
+        }
+
+        function renderWalkForward(wf) {
+            var card = $('wfCard');
+            if (!wf) {
+                card.classList.remove('hidden');
+                $('wfMeta').textContent = 'not enough history';
+                $('wfBody').innerHTML = '<p class="sub" style="color:var(--c-text-faint);font-size:var(--fs-sm)">' +
+                    'A walk-forward run needs at least warmup + one in-sample + one out-of-sample window ' +
+                    'of bars. This history is too short — fetch a higher timeframe (e.g. D) for more depth.</p>';
+                return;
+            }
+            card.classList.remove('hidden');
+            $('wfMeta').textContent = wf.windowCount + ' window(s) · IS ' + wf.inSampleBars +
+                ' / OOS ' + wf.outOfSampleBars + ' bars';
+
+            var agg = wf.aggregate || {};
+            var head = '<div class="tiles" style="margin-bottom:var(--sp-4)">' +
+                tile('OOS Windows w/ Trades', String(agg.windowsWithTrades || 0), 'neutral') +
+                tile('Total OOS Trades', String(agg.totalOosTrades || 0), 'neutral') +
+                tile('Avg OOS Expectancy', fmtR(agg.averageExpectancyR), toneClass(agg.averageExpectancyR || 0)) +
+                tile('Avg OOS Win Rate', fmtPct(agg.averageWinRate), 'neutral') +
+                '</div>';
+
+            var rows = wf.windows.map(function (w) {
+                var is = w.inSample.metrics, oos = w.outOfSample.metrics;
+                var isT = is.trades || 0, oosT = oos.trades || 0;
+                var dExp = w.degradation.expectancyR;
+                return '<tr>' +
+                    '<td>#' + (w.index + 1) + '</td>' +
+                    '<td>' + isT + '</td>' +
+                    '<td class="' + toneClass(is.expectancyR || 0) + '">' + fmtR(is.expectancyR) + '</td>' +
+                    '<td>' + fmtPct(is.winRate) + '</td>' +
+                    '<td>' + oosT + '</td>' +
+                    '<td class="' + toneClass(oos.expectancyR || 0) + '">' + fmtR(oos.expectancyR) + '</td>' +
+                    '<td>' + fmtPct(oos.winRate) + '</td>' +
+                    '<td class="' + toneClass(dExp || 0) + '">' + (dExp === null ? '—' : fmtR(dExp)) + '</td>' +
+                    '</tr>';
+            }).join('');
+
+            $('wfBody').innerHTML = head +
+                '<div class="tbl-scroll"><table class="data">' +
+                '<thead><tr><th>Window</th><th>IS Trades</th><th>IS Exp.</th><th>IS Win%</th>' +
+                '<th>OOS Trades</th><th>OOS Exp.</th><th>OOS Win%</th><th>Δ Exp. (OOS−IS)</th></tr></thead>' +
+                '<tbody>' + rows + '</tbody></table></div>' +
+                '<p class="sub" style="color:var(--c-text-dim);font-size:var(--fs-2xs);margin-top:var(--sp-3)">' +
+                esc(wf.note) + '</p>';
+        }
+
+        function renderMonteCarlo(mc) {
+            var card = $('mcCard');
+            if (!mc || mc.note) {
+                card.classList.remove('hidden');
+                $('mcBody').innerHTML = '<p class="sub" style="color:var(--c-text-faint);font-size:var(--fs-sm)">' +
+                    (mc && mc.note ? esc(mc.note) : 'No trades to resample.') + '</p>';
+                return;
+            }
+            card.classList.remove('hidden');
+            var fe = mc.finalEquityR, dd = mc.maxDrawdownR;
+            $('mcBody').innerHTML = '<div class="tiles">' +
+                tile('Final Equity p05', fmtR(fe.p05), toneClass(fe.p05), 'worst 5%') +
+                tile('Final Equity median', fmtR(fe.median), toneClass(fe.median)) +
+                tile('Final Equity p95', fmtR(fe.p95), toneClass(fe.p95), 'best 5%') +
+                tile('Max Drawdown median', fmtR(-dd.median), 'neg') +
+                tile('Max Drawdown p95', fmtR(-dd.p95), 'neg', 'worst 5%') +
+                tile('Probability of Loss', fmtPct(mc.probabilityOfLoss),
+                     toneClass(0.5 - mc.probabilityOfLoss), 'ending below 0R') +
+                '</div>' +
+                '<p class="sub" style="color:var(--c-text-dim);font-size:var(--fs-2xs);margin-top:var(--sp-3)">' +
+                'Seeded resample (seed ' + mc.seed + ', ' + mc.iterations + ' iterations) of the realised ' +
+                'trade R-sequence. Reproducible: the same trades always yield this distribution.</p>';
+        }
+
+        function renderTrades(res) {
+            var trades = res.trades || [];
+            var card = $('tradesCard');
+            if (!trades.length) { card.classList.add('hidden'); return; }
+            card.classList.remove('hidden');
+            $('tradesMeta').textContent = trades.length + ' closed trade(s)';
+            var rows = trades.map(function (t, i) {
+                var dir = t.direction === 'bullish' ? 'bull' : 'bear';
+                var dirLabel = t.direction === 'bullish' ? 'Long' : 'Short';
+                return '<tr>' +
+                    '<td>' + (i + 1) + '</td>' +
+                    '<td><span class="pill ' + dir + '">' + dirLabel + '</span></td>' +
+                    '<td>' + fmtDate(t.entryTime) + '</td>' +
+                    '<td class="mono">' + fmtNum(t.entryPrice, 2) + '</td>' +
+                    '<td>' + esc(t.exitReason || '—') + '</td>' +
+                    '<td class="mono ' + toneClass(t.realisedR) + '">' + fmtR(t.realisedR) + '</td>' +
+                    '<td class="mono">' + (t.barsHeld === undefined ? '—' : t.barsHeld) + '</td>' +
+                    '<td>' + esc(t.regime || '—') + '</td>' +
+                    '</tr>';
+            }).join('');
+            $('tradesTable').innerHTML =
+                '<thead><tr><th>#</th><th>Dir</th><th>Entry Date</th><th>Entry</th>' +
+                '<th>Exit Reason</th><th>Result</th><th>Bars</th><th>Regime</th></tr></thead>' +
+                '<tbody>' + rows + '</tbody>';
+        }
+
+        // ---- Main run ----
+        function runValidation() {
+            var symbol = $('symbolSelect').value;
+            var interval = $('intervalSelect').value;
+            var profile = $('profileSelect').value;
+            var meta = BASE_CFG.symbols[symbol] || {};
+            var assetClass = meta.class || 'crypto';
+
+            var btn = $('runBtn');
+            btn.disabled = true;
+            showOnly('loadingState');
+            $('loadingDetail').textContent = 'Fetching ' + (meta.td || symbol) +
+                ' @ ' + interval + ' through the proxy…';
+
+            QT.app.fetchBundle(symbol, interval).then(function (bundle) {
+                var series = bundle.data && bundle.data.series && bundle.data.series.ltf;
+                var bars = series && series.bars;
+                if (!bars || !bars.length) throw new Error('The proxy returned no bars for this symbol/interval.');
+
+                var cfg = QT.profiles.applyProfile(profile);
+                var warmup = cfg.backtest.warmupBars;
+                if (bars.length <= warmup + 2) {
+                    var e = new Error('Only ' + bars.length + ' bars returned; the engine needs more than ' +
+                        warmup + ' warm-up bars before it can evaluate a single trade. Try the D interval.');
+                    e.code = 'INSUFFICIENT_HISTORY';
+                    throw e;
+                }
+
+                // Defer the heavy compute so the loading state paints first.
+                setTimeout(function () {
+                    try {
+                        var res = QTBacktest.run({ bars: bars, config: cfg, assetClass: assetClass });
+
+                        var wf = null;
+                        var wfCfg = cfg.backtest.walkForward;
+                        var need = warmup + wfCfg.inSampleBars + wfCfg.outOfSampleBars;
+                        if (bars.length >= need) {
+                            wf = QTBacktest.walkForward({ bars: bars, config: cfg, assetClass: assetClass });
+                        }
+
+                        var mc = res.trades.length
+                            ? QTBacktest.monteCarlo(res.trades, { iterations: 1000, seed: 12345 })
+                            : null;
+
+                        renderSummary(res);
+                        renderEquity(res);
+                        renderFunnel(res);
+                        renderWalkForward(wf);
+                        renderMonteCarlo(mc);
+                        renderTrades(res);
+                        showOnly('results');
+                    } catch (err) {
+                        fail(err);
+                    } finally {
+                        btn.disabled = false;
+                    }
+                }, 30);
+            }).catch(function (err) {
+                fail(err);
+                btn.disabled = false;
+            });
+        }
+
+        function fail(err) {
+            showOnly('errorState');
+            var msg = err && err.message ? err.message : String(err);
+            var hint = '';
+            if (/Failed to fetch|NetworkError/i.test(msg)) {
+                $('errorTitle').textContent = 'Could not reach the proxy';
+                hint = 'Start it with "npm start" in the trading-proxy folder, then try again. ' +
+                       'Expected at ' + QT.app.getProxyBase() + '.';
+            } else if (err && err.code === 'INSUFFICIENT_HISTORY') {
+                $('errorTitle').textContent = 'Not enough history';
+                hint = msg;
+                msg = '';
+            } else {
+                $('errorTitle').textContent = 'Validation failed';
+                hint = err && err.code ? 'Error code: ' + err.code : '';
+            }
+            $('errorDetail').textContent = [msg, hint].filter(Boolean).join(' — ');
+        }
+
+        // ---- Init ----
+        populateControls();
+        probeHealth();
+        $('runBtn').addEventListener('click', runValidation);
+    </script>
+</body>
+</html>

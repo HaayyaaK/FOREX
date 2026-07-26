@@ -28,8 +28,10 @@ const TYPES = {
     '.md': 'text/markdown; charset=utf-8'
 };
 
-/** Blocked from static serving, mirroring the IIS rules in web.config. */
-const BLOCKED = /^(\.env|\.git|node_modules|tests|backtest)(\/|$)/;
+/** Blocked from static serving, mirroring the IIS rules in web.config.
+ *  backtest/ is intentionally servable: validation.html loads
+ *  backtest/qt-backtest.js as a client-side runtime asset. */
+const BLOCKED = /^(\.env|\.git|node_modules|tests)(\/|$)/;
 
 http.createServer((req, res) => {
     let rel = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '');

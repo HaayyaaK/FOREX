@@ -62,6 +62,7 @@
             --c-ico-chart: #22d3ee;  /* cyan   — charts / eye toggle */
             --c-ico-calc:  #fbbf24;  /* amber  — calculator */
             --c-ico-save:  #34d399;  /* green  — save profile (when on) */
+            --c-ico-valid: #a78bfa;  /* violet — strategy validation */
 
             /* ---- Pixel-aware primitives ----
                --hairline renders a true 1-device-pixel rule (see the HiDPI
@@ -583,6 +584,7 @@
         /* Colourful, accessible header glyphs (FontAwesome, locally hosted). */
         #wsToggle i { color: var(--c-ico-chart); }
         #calcLink i { color: var(--c-ico-calc); }
+        #validationLink i { color: var(--c-ico-valid); }
 
         /* Save-profile toggle — unmistakable ON / OFF states.
            OFF: dimmed, greyed glyph, neutral chrome.
@@ -1303,6 +1305,8 @@
                 </button>
                 <a class="icon-btn" id="calcLink" href="calc.html" target="_blank" rel="noopener"
                    aria-label="Open Calculator" title="Open Calculator"><i class="fa-solid fa-calculator" aria-hidden="true"></i></a>
+                <a class="icon-btn" id="validationLink" href="validation.html" target="_blank" rel="noopener"
+                   aria-label="Open Strategy Validation" title="Open Strategy Validation"><i class="fa-solid fa-flask-vial" aria-hidden="true"></i></a>
                 <button type="button" class="icon-btn" id="saveProfileBtn"
                         aria-pressed="false" aria-label="Save profile preferences" title="Save profile preferences">
                     <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
