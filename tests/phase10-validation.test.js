@@ -176,8 +176,10 @@ T.suite('Phase 10 — wiring: dashboard link & servable backtester');
 T.test('the dashboard header links to validation.html', function () {
     T.ok(/id="validationLink"[^>]*href="validation\.html"/.test(DASHBOARD_HTML),
          'header-actions contains a validation link to validation.html');
-    T.ok(/id="validationLink"[^>]*target="_blank"/.test(DASHBOARD_HTML),
-         'opens in a new tab (does not lose dashboard state)');
+    // Per current UX: in-app navigation opens in the same page (a Back-to-Dashboard
+    // control lives on validation.html), so the header link must NOT force a new tab.
+    T.ok(!/id="validationLink"[^>]*target="_blank"/.test(DASHBOARD_HTML),
+         'opens in the current page (validation.html has its own Back control)');
 });
 
 T.test('backtest/ is servable (validation.html depends on it) but sources stay blocked', function () {

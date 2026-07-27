@@ -979,7 +979,7 @@ T.test('every card title is a real heading (h3), not a styled span', function ()
 
 T.test('heading levels never skip (h1 page title -> h2 hero -> h3 cards)', function () {
     var html = fs.readFileSync(path.join(__dirname, '..', 'dashboard.html'), 'utf8');
-    T.ok(/<h1>/.test(html), 'page has exactly one h1 (the dashboard title)');
+    T.ok(/<h1[\s>]/.test(html), 'page has exactly one h1 (the dashboard title)');
     T.equal((html.match(/<h1[\s>]/g) || []).length, 1, 'exactly one h1 on the page');
 });
 
@@ -1275,7 +1275,7 @@ T.test('the mobile hamburger menu was removed completely', function () {
 T.test('Calculator and Save-Profile are icon-only buttons in a fixed header-actions group', function () {
     T.ok(/class="header-actions"/.test(DASHBOARD_HTML), 'header-actions container present');
     T.ok(/id="calcLink"[^>]*href="calc\.html"/.test(DASHBOARD_HTML), 'Calculator points to calc.html at the root');
-    T.ok(/id="calcLink"[^>]*target="_blank"/.test(DASHBOARD_HTML), 'opens in a new tab (does not lose app state)');
+    T.ok(!/id="calcLink"[^>]*target="_blank"/.test(DASHBOARD_HTML), 'opens in the current page (calc.html has its own Back control)');
     T.ok(/id="saveProfileBtn"/.test(DASHBOARD_HTML), 'Save-profile button present');
     // Icon-only: no visible TEXT CONTENT (the rendered part between tags) — the
     // accessible name comes entirely from aria-label/title, not visible text.

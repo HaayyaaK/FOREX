@@ -106,4 +106,42 @@ T.test('the ticker tape is re-mounted on return to the Charts workspace', functi
     T.ok(/tickerRetries = 0/.test(wire), 'resets the watchdog retry counter so it stays available');
 });
 
+T.suite('Phase 11 — Navigation: brand-home & same-page in-app links');
+
+T.test('the Keen Eye brand is an accessible control that jumps to Charts', function () {
+    T.ok(/id="brandHome"[^>]*role="button"/.test(DASHBOARD_HTML), 'brand h1 exposes role="button"');
+    T.ok(/id="brandHome"[^>]*tabindex="0"/.test(DASHBOARD_HTML), 'brand is keyboard-focusable');
+    var wire = DASHBOARD_HTML.match(/function wireWorkspaceSwitch\(\)[\s\S]*?\n {8}\}/)[0];
+    T.ok(/getElementById\('brandHome'\)/.test(wire), 'brand is wired up');
+    T.ok(/setWorkspace\('charts'\)/.test(wire), 'brand click routes to the Charts workspace');
+    T.ok(/Enter'.*' '|Enter' \|\| e\.key === ' '/.test(wire), 'brand responds to Enter/Space keys');
+});
+
+T.test('in-app header links open in the current page (not a new tab)', function () {
+    T.ok(!/id="calcLink"[^>]*target="_blank"/.test(DASHBOARD_HTML), 'Calculator opens same-page');
+    T.ok(!/id="validationLink"[^>]*target="_blank"/.test(DASHBOARD_HTML), 'Validation opens same-page');
+    // Each destination still carries a Back-to-Dashboard control so the flow is reversible.
+    var calc = fs.readFileSync(path.join(ROOT, 'calc.html'), 'utf8');
+    var val = fs.readFileSync(path.join(ROOT, 'validation.html'), 'utf8');
+    var disc = fs.readFileSync(path.join(ROOT, 'disclaimer.html'), 'utf8');
+    T.ok(/href="dashboard\.html"/.test(calc), 'calc.html has a Back-to-Dashboard link');
+    T.ok(/href="dashboard\.html"/.test(val), 'validation.html has a Back-to-Dashboard link');
+    T.ok(/href="dashboard\.html"/.test(disc), 'disclaimer.html has a Back-to-Dashboard link');
+});
+
+T.suite('Phase 11 — Typography: self-hosted Inter (no CDN)');
+
+T.test('Inter is self-hosted and wired across every page', function () {
+    T.ok(fs.existsSync(path.join(ROOT, 'assets', 'fonts', 'inter-latin-variable.woff2')),
+         'the Inter variable woff2 is present on disk');
+    ['dashboard.html', 'calc.html', 'validation.html', 'disclaimer.html'].forEach(function (f) {
+        var html = fs.readFileSync(path.join(ROOT, f), 'utf8');
+        T.ok(/@font-face/.test(html) && /Inter Variable/.test(html), f + ' declares the Inter @font-face');
+        T.ok(/assets\/fonts\/inter-latin-variable\.woff2/.test(html), f + ' points at the local woff2');
+        T.ok(/font-family:\s*'Inter Variable'/.test(html), f + ' lists Inter first in the font stack');
+        // No CDN font source.
+        T.ok(!/@font-face[\s\S]{0,200}https?:\/\//.test(html), f + ' loads the font locally, not from a CDN');
+    });
+});
+
 module.exports = T;

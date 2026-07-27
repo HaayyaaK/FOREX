@@ -7,6 +7,11 @@
     <!-- Locally hosted FontAwesome 7 (icons + self-hosted webfonts). No CDN. -->
     <link rel="stylesheet" href="assets/fontawesome-free-7.3.1-web/css/all.min.css">
     <style>
+        /* Inter — self-hosted variable font (Latin), no CDN. */
+        @font-face {
+            font-family: 'Inter Variable'; font-style: normal; font-display: swap;
+            font-weight: 100 900; src: url('assets/fonts/inter-latin-variable.woff2') format('woff2');
+        }
         /* ==============================================================
            calc.html — Precision trading calculator.
            Design system mirrors dashboard.html: same tokens, same dark
@@ -78,7 +83,7 @@
         body {
             background: var(--c-bg);
             color: var(--c-text);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter Variable', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             font-size: var(--fs-md);
             min-height: 100%;
             padding-bottom: calc(var(--sp-5) + env(safe-area-inset-bottom, 0px));

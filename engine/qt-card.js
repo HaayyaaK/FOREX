@@ -491,9 +491,72 @@
     /* ================================================================
      * Executive summary
      * ================================================================ */
+    /**
+     * Decision-confidence guidance. DISPLAY-ONLY: this reads the engine's own
+     * outputs (evidence balance, confidence, internal-consistency check, MTF
+     * arbitration) and turns them into a plain-language hint + a recommended
+     * action for the user. It computes no trading analysis — it only summarises
+     * how clean or conflicted the signal the engine already produced is, so a
+     * reader knows how much to trust it when indicators disagree.
+     */
+    function buildGuidance(rec) {
+        var sup = (rec.evidence.supporting || []).length;
+        var opp = (rec.evidence.opposing || []).length;
+        var total = sup + opp;
+        var oppRatio = total ? opp / total : 0;
+        var conf = rec.confidence;
+        var dir = rec.recommendation.direction;
+        var mtfConflict = rec.mtf && rec.mtf.evaluated && rec.mtf.action === 'block';
+        var inconsistent = rec.consistency && rec.consistency.errorCount > 0;
+
+        var level, icon, headline, action;
+        if (inconsistent) {
+            level = 'bear'; icon = '';   // triangle-exclamation
+            headline = 'Internal inconsistency detected in this analysis.';
+            action = 'Treat this signal with caution and re-run before acting.';
+        } else if (dir === 'none') {
+            level = 'info'; icon = '';    // circle-info
+            headline = 'No directional edge — the engine is standing aside.';
+            action = 'Standing aside is a valid outcome; wait for a cleaner setup.';
+        } else if (oppRatio >= 0.40 || conf < 55 || mtfConflict) {
+            level = 'warn'; icon = '';
+            headline = 'Mixed signals: ' + opp + ' of ' + total + ' factors oppose this ' + dir + ' bias' +
+                (mtfConflict ? ', and a higher timeframe disagrees' : '') + '.';
+            action = 'Wait for confirmation or reduce size — conviction is low.';
+        } else if (oppRatio >= 0.28) {
+            level = 'info'; icon = '';
+            headline = 'Some opposition (' + opp + ' of ' + total + ' factors) against this ' + dir + ' bias.';
+            action = 'Bias is ' + dir + ' but not clean — favour confirmation on entry.';
+        } else {
+            level = 'bull'; icon = '';    // check
+            headline = 'Signals are broadly aligned: ' + sup + ' of ' + total + ' support the ' + dir + ' bias.';
+            action = 'Conviction is comparatively clean for this setup.';
+        }
+
+        var g = h('div', { class: 'qtw-guidance qtw-tone-' + level, role: 'note' });
+        var LEVEL_ICON = { bear: 'fa-triangle-exclamation', warn: 'fa-triangle-exclamation',
+                           info: 'fa-circle-info', bull: 'fa-circle-check' };
+        g.appendChild(h('i', { class: 'qtw-guidance-ico fa-solid ' + (LEVEL_ICON[level] || 'fa-circle-info'),
+                               'aria-hidden': 'true' }));
+        var body = h('div', { class: 'qtw-guidance-body' });
+        body.appendChild(h('div', { class: 'qtw-guidance-head', text: headline }));
+        body.appendChild(h('div', { class: 'qtw-guidance-action', text: action }));
+        // A compact support/oppose balance bar for at-a-glance conflict reading.
+        if (total) {
+            var bar = h('div', { class: 'qtw-balance', 'aria-label':
+                sup + ' supporting vs ' + opp + ' opposing factors' });
+            bar.appendChild(h('span', { class: 'qtw-balance-sup', style: 'width:' + (sup / total * 100).toFixed(1) + '%' }));
+            bar.appendChild(h('span', { class: 'qtw-balance-opp', style: 'width:' + (opp / total * 100).toFixed(1) + '%' }));
+            body.appendChild(bar);
+        }
+        g.appendChild(body);
+        return g;
+    }
+
     function buildSummary(rec) {
         var s = staticCard('executive', 'Executive Summary', {});
         s.classList.add('qtw-summary');
+        s._body.appendChild(buildGuidance(rec));
         s._body.appendChild(h('p', { class: 'qtw-exec', text: rec.explanations.executive }));
         var row = h('div', { class: 'qtw-exec-row' });
         row.appendChild(chip('Primary reason', 'neutral', { outline: true, title: rec.reasoning.primaryReason }));
@@ -1044,6 +1107,95 @@
      * @param {Object} rec       the recommendation object from Phase 7 — read verbatim
      * @param {Object} [context] OPTIONAL, presentation-only: { price, priceTime }
      */
+    /* ================================================================
+     * Asset-focus panel — DISPLAY-ONLY, asset-class-specific.
+     *
+     * Surfaces the last closed values of indicators the engine already
+     * computed, grouped for the asset's nature (crypto volatility set /
+     * metal macro-trend set / forex institutional set). It feeds NOTHING
+     * back into scoring, gates or the recommendation — it is a reading aid.
+     * Volume-derived fields are shown "n/a" when the asset carries no volume,
+     * never fabricated. Returns null when no snapshot was supplied.
+     * ================================================================ */
+    function buildAssetFocus(rec, ctx) {
+        if (!ctx || !ctx.indicators) return null;
+        var ind = ctx.indicators;
+        var cls = ctx.assetClass || 'crypto';
+        var price = ctx.price;
+
+        function cloudPos() {
+            if (ind.ichiSpanA == null || ind.ichiSpanB == null || price == null) return null;
+            var hi = Math.max(ind.ichiSpanA, ind.ichiSpanB), lo = Math.min(ind.ichiSpanA, ind.ichiSpanB);
+            return price > hi ? 'Above cloud' : price < lo ? 'Below cloud' : 'In cloud';
+        }
+        function vwapDist() {
+            if (ind.vwap == null || price == null) return null;
+            return (price - ind.vwap) / ind.vwap * 100;
+        }
+
+        // Each entry: [label, value-or-null, formatter, tone-fn(optional), naNote]
+        var na = 'n/a — no volume for this asset';
+        var sets = {
+            crypto: { title: 'Bitcoin Volatility Focus', icon: 'fa-bolt', rows: [
+                ['RSI (14)', ind.rsi, function (v) { return num(v, 1); }],
+                ['ATR (volatility)', ind.atrPct, function (v) { return num(v, 2) + '%'; }],
+                ['Realized Vol (ann.)', ind.realizedVol, function (v) { return num(v, 1) + '%'; }],
+                ['Bollinger Bandwidth', ind.bbBandwidth, function (v) { return num(v, 2) + '%'; }],
+                ['SuperTrend', ind.superTrendDir, function (v) { return v > 0 ? 'Uptrend' : 'Downtrend'; }],
+                ['MACD Histogram', ind.macdHist, function (v) { return signed(v, 2); }],
+                ['Stochastic %K', ind.stochK, function (v) { return num(v, 1); }],
+                ['Money Flow Index', ind.mfi, function (v) { return num(v, 1); }],
+                ['Chaikin Money Flow', ind.cmf, function (v) { return signed(v, 3); }],
+                ['Relative Volume', ind.relVol, function (v) { return num(v, 2) + '×'; }],
+                ['VWAP distance', vwapDist(), function (v) { return signed(v, 2) + '%'; }]
+            ]},
+            metal: { title: 'Gold Macro & Trend Focus', icon: 'fa-landmark', rows: [
+                ['ADX (trend strength)', ind.adx, function (v) { return num(v, 1); }],
+                ['Ichimoku cloud', cloudPos(), function (v) { return v; }],
+                ['ATR (volatility)', ind.atrPct, function (v) { return num(v, 2) + '%'; }],
+                ['Realized Vol (ann.)', ind.realizedVol, function (v) { return num(v, 1) + '%'; }],
+                ['CCI (20)', ind.cci, function (v) { return num(v, 0); }],
+                ['MACD Histogram', ind.macdHist, function (v) { return signed(v, 2); }],
+                ['RSI (14)', ind.rsi, function (v) { return num(v, 1); }],
+                ['Money Flow / Volume', ind.mfi, function (v) { return num(v, 1); }, na]
+            ]},
+            forex: { title: 'Institutional Focus', icon: 'fa-building-columns', rows: [
+                ['VWAP distance', vwapDist(), function (v) { return signed(v, 3) + '%'; }, na],
+                ['ADX (trend strength)', ind.adx, function (v) { return num(v, 1); }],
+                ['Ichimoku cloud', cloudPos(), function (v) { return v; }],
+                ['ATR (volatility)', ind.atrPct, function (v) { return num(v, 3) + '%'; }],
+                ['Realized Vol (ann.)', ind.realizedVol, function (v) { return num(v, 1) + '%'; }],
+                ['RSI (14)', ind.rsi, function (v) { return num(v, 1); }],
+                ['MACD Histogram', ind.macdHist, function (v) { return signed(v, 4); }],
+                ['Relative Volume', ind.relVol, function (v) { return num(v, 2) + '×'; }, na]
+            ]}
+        };
+        var set = sets[cls] || sets.crypto;
+
+        var s = familyCard('assetfocus', 'pulse', set.icon, set.title);
+        s._body.appendChild(h('p', { class: 'qtw-note',
+            text: 'Asset-tuned reading aid — last closed values of already-computed indicators. ' +
+                  'Display only: these do not change the recommendation.' }));
+        var gridEl = h('div', { class: 'qtw-focus-grid' });
+        set.rows.forEach(function (r) {
+            var label = r[0], val = r[1], fmt = r[2], naNote = r[3];
+            var item = h('div', { class: 'qtw-focus-item' });
+            item.appendChild(h('span', { class: 'qtw-focus-label', text: label }));
+            var display, cl = 'qtw-focus-val';
+            if (val == null || (typeof val === 'number' && !isFinite(val))) {
+                display = naNote ? 'n/a' : '—';
+                cl += ' qtw-focus-na';
+                if (naNote) item.setAttribute('title', naNote);
+            } else {
+                display = fmt(val);
+            }
+            item.appendChild(h('span', { class: cl, text: display }));
+            gridEl.appendChild(item);
+        });
+        s._body.appendChild(gridEl);
+        return s;
+    }
+
     CARD.render = function (container, rec, context) {
         container.innerHTML = '';
         if (!rec) { container.appendChild(h('div', { class: 'qtw-empty', text: 'No analysis yet.' })); return null; }
@@ -1057,14 +1209,26 @@
         root.appendChild(buildTrade(rec, context));
         root.appendChild(buildSummary(rec));
 
+        // Layered information hierarchy — most decision-critical first.
+        //   Layer 1 — Primary decision: why the engine concluded what it did.
+        //   Layer 2 — Confirmation & detail: scoring, structure, indicator readings.
+        //   Layer 3 — Context: general market status.
+        // Ordering the DOM this way also groups similarly-sized cards, so the
+        // auto-fit grid packs cleanly instead of sandwiching a tall card between
+        // short ones.
         var grid = h('div', { class: 'qtw-grid' });
-        grid.appendChild(buildHealth(rec));
-        grid.appendChild(buildStructure(rec));
-        grid.appendChild(buildScores(rec));
-        grid.appendChild(buildConfidence(rec));
+        // Layer 1 — Primary decision.
         grid.appendChild(buildEvidence(rec));
         grid.appendChild(buildGates(rec));
         grid.appendChild(buildMtf(rec));
+        // Layer 2 — Confirmation & detail.
+        grid.appendChild(buildScores(rec));
+        grid.appendChild(buildConfidence(rec));
+        grid.appendChild(buildStructure(rec));
+        var focus = buildAssetFocus(rec, context);
+        if (focus) grid.appendChild(focus);
+        // Layer 3 — Context.
+        grid.appendChild(buildHealth(rec));
         root.appendChild(grid);
 
         var warn = buildWarnings(rec);

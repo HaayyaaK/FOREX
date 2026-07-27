@@ -13,6 +13,11 @@
 <!-- Locally hosted FontAwesome 7 — no CDN. -->
 <link rel="stylesheet" href="assets/fontawesome-free-7.3.1-web/css/all.min.css">
 <style>
+/* Inter — self-hosted variable font (Latin), no CDN. */
+@font-face {
+  font-family: 'Inter Variable'; font-style: normal; font-display: swap;
+  font-weight: 100 900; src: url('assets/fonts/inter-latin-variable.woff2') format('woff2');
+}
 /* ==========================================================================
    Shares dashboard.html's design tokens (same dark palette + cyan→indigo brand
    gradient) so the dashboard and this disclaimer read as one product. English
@@ -41,7 +46,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{
   background:var(--c-bg); color:var(--c-text);
-  font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+  font-family:'Inter Variable','Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
   font-size:var(--fs-md); line-height:1.7; min-height:100vh;
 }
 .wrap{max-width:920px;margin-inline:auto;padding:var(--sp-5) clamp(14px,3vw,32px) 60px}

@@ -15,6 +15,16 @@
          Replaces all emoji/CDN icons and CDN fonts — fully offline, no external calls. -->
     <link rel="stylesheet" href="assets/fontawesome-free-7.3.1-web/css/all.min.css">
     <style>
+        /* Inter — self-hosted variable font (Latin), no CDN. A single
+           weight-axis woff2 covers the whole 100–900 range. `swap` shows the
+           system fallback instantly, then upgrades to Inter when it paints. */
+        @font-face {
+            font-family: 'Inter Variable';
+            font-style: normal;
+            font-display: swap;
+            font-weight: 100 900;
+            src: url('assets/fonts/inter-latin-variable.woff2') format('woff2');
+        }
         /* ==============================================================
            Design tokens
            Every dimension below is either fluid (clamp) or measured at
@@ -124,7 +134,7 @@
         body {
             background: var(--c-bg);
             color: var(--c-text);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter Variable', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             font-size: var(--fs-md);
             height: 100%;
             /* The app shell (below) owns 100dvh and manages every scroll
@@ -600,6 +610,10 @@
         }
         #saveProfileBtn[aria-pressed="true"] i { color: var(--c-ico-save); transform: scale(1.08); }
 
+        /* Brand acts as a "home" control (jumps to Charts) — cue it as clickable. */
+        .header h1#brandHome { cursor: pointer; user-select: none; }
+        .header h1#brandHome:focus-visible { outline: 2px solid var(--c-brand-1); outline-offset: 3px; border-radius: 4px; }
+
         /* Brand glyph in the H1 — opt out of the gradient text-clip so it keeps
            its own solid colour instead of rendering transparent. */
         .header h1 .brand-ico {
@@ -849,6 +863,68 @@
         .qtw-exec { font-size: var(--fs-md); line-height: 1.6; color: var(--c-text); }
         .qtw-exec-row { display: flex; align-items: baseline; gap: var(--sp-3); flex-wrap: wrap; }
         .qtw-exec-note { font-size: var(--fs-xs); color: var(--qtw-text-muted); }
+
+        /* Decision-confidence guidance banner (mixed/aligned/ambiguous signals).
+           Tone class (qtw-tone-bull/bear/warn/info) sets `color`; the banner uses
+           currentColor for its accent and a matching soft fill. */
+        .qtw-guidance {
+            display: flex; gap: var(--sp-3); align-items: flex-start;
+            padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md);
+            border-left: 3px solid currentColor; background: var(--c-surface-2);
+        }
+        .qtw-guidance.qtw-tone-bull { background: var(--qtw-bull-soft); }
+        .qtw-guidance.qtw-tone-bear { background: var(--qtw-bear-soft); }
+        .qtw-guidance.qtw-tone-warn { background: var(--qtw-warn-soft); }
+        .qtw-guidance.qtw-tone-info { background: var(--qtw-info-soft); }
+        .qtw-guidance-ico { color: currentColor; margin-top: 2px; font-size: 1.05em; flex: none; }
+        .qtw-guidance-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        .qtw-guidance-head { font-weight: 600; color: var(--c-text-strong); font-size: var(--fs-sm); line-height: 1.4; }
+        .qtw-guidance-action { font-size: var(--fs-xs); color: var(--qtw-text-muted); line-height: 1.4; }
+        .qtw-balance {
+            display: flex; height: 6px; border-radius: 3px; overflow: hidden;
+            margin-top: 4px; max-width: 340px; background: var(--c-surface-3);
+        }
+        .qtw-balance-sup { background: var(--qtw-bull); }
+        .qtw-balance-opp { background: var(--qtw-bear); }
+
+        /* Asset-focus panel — per-asset-class indicator reading aid. */
+        .qtw-focus-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: var(--sp-2); margin-top: var(--sp-3);
+        }
+        .qtw-focus-item {
+            display: flex; flex-direction: column; gap: 2px;
+            padding: var(--sp-2) var(--sp-3); background: var(--c-surface-2);
+            border-radius: var(--r-sm); border: var(--hairline) solid var(--c-border-soft);
+            min-width: 0;
+        }
+        .qtw-focus-label {
+            font-size: var(--fs-2xs); color: var(--qtw-text-muted);
+            text-transform: uppercase; letter-spacing: 0.4px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .qtw-focus-val {
+            font-size: var(--fs-sm); font-weight: 600; color: var(--c-text-strong);
+            font-variant-numeric: tabular-nums;
+        }
+        .qtw-focus-na { color: var(--c-text-dim); font-weight: 400; }
+
+        /* Transient status toast (Save-Profile feedback, etc.). */
+        .toast {
+            position: fixed; left: 50%; bottom: calc(var(--sp-5) + env(safe-area-inset-bottom, 0px));
+            transform: translateX(-50%) translateY(12px);
+            max-width: min(92vw, 460px); padding: var(--sp-3) var(--sp-4);
+            background: var(--c-surface-2); color: var(--c-text-strong);
+            border: var(--hairline) solid var(--c-border-hover); border-radius: var(--r-md);
+            box-shadow: var(--shadow); font-size: var(--fs-sm); z-index: 200;
+            display: flex; align-items: center; gap: var(--sp-2);
+            opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+        }
+        .toast[hidden] { display: none; }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast i { flex: none; }
+        .toast.toast-on i { color: var(--c-ico-save); }
+        .toast.toast-off i { color: var(--c-text-faint); }
 
         /* =====================================================
            CARD / SECTION shell  (native <details>/<summary>)
@@ -1288,7 +1364,9 @@
          scroll off-screen. -->
     <div class="app-header">
         <div class="header">
-            <h1><i class="fa-solid fa-chart-line brand-ico" aria-hidden="true"></i>Keen Eye</h1>
+            <h1 id="brandHome" role="button" tabindex="0"
+                aria-label="Keen Eye — go to the Charts workspace" title="Go to Charts">
+                <i class="fa-solid fa-chart-line brand-ico" aria-hidden="true"></i>Keen Eye</h1>
 
             <div class="status">
                 <span class="conn-chip" id="connChip" title="Analysis proxy connection: Idle">
@@ -1303,9 +1381,9 @@
                         aria-pressed="false" aria-label="Switch to Keen Eye" title="Switch to Keen Eye">
                     <i class="fa-solid fa-chart-line" id="wsToggleIcon" aria-hidden="true"></i>
                 </button>
-                <a class="icon-btn" id="calcLink" href="calc.html" target="_blank" rel="noopener"
+                <a class="icon-btn" id="calcLink" href="calc.html"
                    aria-label="Open Calculator" title="Open Calculator"><i class="fa-solid fa-calculator" aria-hidden="true"></i></a>
-                <a class="icon-btn" id="validationLink" href="validation.html" target="_blank" rel="noopener"
+                <a class="icon-btn" id="validationLink" href="validation.html"
                    aria-label="Open Strategy Validation" title="Open Strategy Validation"><i class="fa-solid fa-flask-vial" aria-hidden="true"></i></a>
                 <button type="button" class="icon-btn" id="saveProfileBtn"
                         aria-pressed="false" aria-label="Save profile preferences" title="Save profile preferences">
@@ -1428,6 +1506,10 @@
         </a>
     </footer>
   </div>
+
+  <!-- Transient status toast — e.g. Save-Profile on/off feedback so the toggle's
+       effect is unmistakable. aria-live announces it to assistive tech. -->
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
     <!-- The chart now uses TradingView's maintained embed-widget pipeline
          (mounted per-render in renderChart), the same family as the ticker-tape.
@@ -1910,6 +1992,21 @@
         }
 
         function wireWorkspaceSwitch() {
+            // Brand acts as "home": clicking (or Enter/Space on) the Keen Eye
+            // wordmark jumps straight to the Charts workspace, the app's home view.
+            var brand = document.getElementById('brandHome');
+            if (brand) {
+                var goCharts = function () {
+                    if (appEl.getAttribute('data-workspace') !== 'charts') {
+                        setWorkspace('charts');
+                        tickerRetries = 0; mountTickerTape();
+                    }
+                };
+                brand.addEventListener('click', goCharts);
+                brand.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goCharts(); }
+                });
+            }
             if (!wsToggle) return;
             wsToggle.addEventListener('click', function () {
                 var goingTo = appEl.getAttribute('data-workspace') === 'charts' ? 'keeneye' : 'charts';
@@ -1933,6 +2030,30 @@
         var SAVE_PROFILE_KEY = 'qt.profileSaveEnabled';
         var profileSaveEnabled = false;   // authoritative gate (set in Init before restorePrefs)
         var saveProfileBtn = document.getElementById('saveProfileBtn');
+
+        // Transient toast so the Save-Profile toggle's effect is unmistakable —
+        // the #1 reason users think persistence "isn't working" is not realising
+        // it is off by default and gives no feedback when clicked.
+        var toastEl = document.getElementById('toast');
+        var toastTimer = null;
+        function showToast(msg, kind) {
+            if (!toastEl) return;
+            toastEl.className = 'toast' + (kind ? ' toast-' + kind : '');
+            toastEl.innerHTML = '';
+            var i = document.createElement('i');
+            i.className = 'fa-solid ' + (kind === 'on' ? 'fa-floppy-disk' : kind === 'off' ? 'fa-ban' : 'fa-circle-info');
+            i.setAttribute('aria-hidden', 'true');
+            toastEl.appendChild(i);
+            toastEl.appendChild(document.createTextNode(msg));
+            toastEl.hidden = false;
+            requestAnimationFrame(function () { toastEl.classList.add('show'); });
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(function () {
+                toastEl.classList.remove('show');
+                setTimeout(function () { toastEl.hidden = true; }, 300);
+            }, 3200);
+        }
+
         function setSaveProfile(on, capture) {
             profileSaveEnabled = !!on;     // update the gate first so savePref() can write
             if (!saveProfileBtn) return;
@@ -1943,6 +2064,13 @@
             try { localStorage.setItem(SAVE_PROFILE_KEY, on ? '1' : '0'); } catch (e) { /* storage may be unavailable */ }
             // On a user turning it ON, snapshot the present UI so it is remembered.
             if (on && capture) persistCurrentSettings();
+            // Only announce on an actual user action (capture=true), not on the
+            // silent reflect-state call during Init.
+            if (capture) {
+                showToast(on
+                    ? 'Saving your settings — symbol, interval, profile, workspace & mode will be restored next visit.'
+                    : 'Not saving — the dashboard will open in its defaults.', on ? 'on' : 'off');
+            }
         }
         function wireSaveProfile() {
             if (!saveProfileBtn) return;

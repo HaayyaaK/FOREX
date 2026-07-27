@@ -163,13 +163,46 @@
          * holds, passed as the renderer's optional third argument so the card
          * can show a reference price without the engine's JSON changing. */
         var lastBar = bars[bars.length - 1];
+
+        /* Display-only indicator snapshot for the asset-focus panel. These are
+         * the LAST closed values of indicators the engine ALREADY computed — no
+         * new analysis, nothing that feeds scoring or gates. The card picks an
+         * asset-appropriate subset (crypto volatility / metal macro / forex
+         * institutional) and renders whatever is finite, marking volume-derived
+         * fields unavailable when the asset carries no volume. */
+        var U = QT.utils;
+        var lastClose = lastBar ? lastBar.close : null;
+        function lf(a) { return a && a.length ? U.lastFinite(a) : null; }
+        var st = indicators.superTrend || {};
+        var indicatorSnapshot = {
+            rsi: lf(indicators.rsi),
+            atr: lf(indicators.atr),
+            atrPct: (lf(indicators.atr) != null && lastClose) ? lf(indicators.atr) / lastClose * 100 : null,
+            adx: indicators.adx ? lf(indicators.adx.adx) : null,
+            realizedVol: lf(indicators.realizedVol),
+            bbBandwidth: indicators.bollinger ? lf(indicators.bollinger.bandwidth) : null,
+            macdHist: indicators.macd ? lf(indicators.macd.histogram) : null,
+            stochK: indicators.stochastic ? lf(indicators.stochastic.k) : null,
+            cci: lf(indicators.cci),
+            superTrendDir: lf(st.direction),
+            ichiSpanA: indicators.ichimoku ? lf(indicators.ichimoku.spanA) : null,
+            ichiSpanB: indicators.ichimoku ? lf(indicators.ichimoku.spanB) : null,
+            // Volume-derived (finite only when the asset actually supplies volume):
+            vwap: lf(indicators.vwap),
+            mfi: lf(indicators.mfi),
+            cmf: lf(indicators.cmf),
+            relVol: lf(indicators.relativeVolume)
+        };
+
         var context = {
-            price: lastBar ? lastBar.close : null,
+            price: lastClose,
             priceTime: lastBar ? lastBar.time : null,
             // TradingView-style symbol ("FX:EURUSD") - cfg.symbols is keyed by it,
             // so data.symbol already carries that exact form. Presentation-only:
             // the shell uses it to mount the live quote embed in the hero.
-            tvSymbol: data.symbol || null
+            tvSymbol: data.symbol || null,
+            assetClass: data.assetClass || meta.class || cfg.risk.defaultClass,
+            indicators: indicatorSnapshot
         };
 
         return { rec: rec, context: context };

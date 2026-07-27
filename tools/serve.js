@@ -25,6 +25,8 @@ const TYPES = {
     '.png': 'image/png',
     '.ico': 'image/x-icon',
     '.webmanifest': 'application/manifest+json',
+    '.woff2': 'font/woff2',
+    '.woff': 'font/woff',
     '.md': 'text/markdown; charset=utf-8'
 };
 
