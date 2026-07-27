@@ -1311,15 +1311,22 @@ T.test('the header-actions group (workspace toggle, Calculator, Save Profile) is
     T.ok(/\.header-actions\s*\{[^}]*flex:\s*0 0 auto/.test(DASHBOARD_HTML), 'the group is fixed (does not grow/stretch)');
 });
 
-T.test('the mode toggle and Analyze are combined into one fixed group at the end of the controls bar', function () {
+T.test('action buttons (Reload, Analyze split) form one fixed group pinned to the end of the controls bar', function () {
     var controls = DASHBOARD_HTML.match(/<div class="controls" id="controlsBar">[\s\S]*?<div class="app-body">/)[0];
-    T.ok(/class="controls-end"/.test(controls), 'a controls-end wrapper exists inside the controls bar');
-    var endIdx = controls.indexOf('class="controls-end"');
-    var modeIdx = controls.indexOf('class="qtw-mode-toggle"');
+    T.ok(/class="ctrl-buttons"/.test(controls), 'a ctrl-buttons wrapper exists inside the controls bar');
+    var btnIdx = controls.indexOf('class="ctrl-buttons"');
+    var selIdx = controls.indexOf('class="ctrl-selectors"');
     var analyzeIdx = controls.indexOf('id="analyzeBtn"');
-    T.ok(endIdx !== -1 && endIdx < modeIdx && modeIdx < analyzeIdx, 'mode toggle and Analyze both live inside controls-end');
-    T.ok(/\.controls-end\s*\{[^}]*flex:\s*0 0 auto/.test(DASHBOARD_HTML), 'the group is fixed');
-    T.ok(/\.controls-end\s*\{[^}]*margin-left:\s*auto/.test(DASHBOARD_HTML), 'the group is pinned to the end of the bar');
+    // Selectors group comes first; the buttons group (with Analyze) follows.
+    T.ok(selIdx !== -1 && btnIdx !== -1 && selIdx < btnIdx && btnIdx < analyzeIdx,
+         'selectors group precedes the buttons group, which contains Analyze');
+    // The Trader/Analyst radiogroup is retained (hidden) as the mode source of truth,
+    // now driven by the Analyze split menu.
+    T.ok(/class="qtw-mode-toggle"[^>]*hidden/.test(controls), 'mode radiogroup kept (hidden) as the source of truth');
+    T.ok(/id="analyzeSplit"/.test(controls) && /id="analyzeMenuBtn"/.test(controls),
+         'Analyze is a split button with a caret menu');
+    T.ok(/\.ctrl-buttons\s*\{[^}]*flex:\s*0 0 auto/.test(DASHBOARD_HTML), 'the buttons group is fixed');
+    T.ok(/\.ctrl-buttons\s*\{[^}]*margin-left:\s*auto/.test(DASHBOARD_HTML), 'the buttons group is pinned to the end');
 });
 
 T.test('the symbol selector sizes to its content instead of a forced minimum width', function () {

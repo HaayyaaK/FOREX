@@ -193,6 +193,24 @@
             line-height: 1;
         }
 
+        /* Clock date popover — reveals the full day + date on hover / focus / tap.
+           Absolutely positioned, so it never affects header layout or wrapping. */
+        .clock-wrap { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
+        .clock-pop {
+            position: absolute; top: calc(100% + 8px); right: 0;
+            background: var(--c-surface-2); color: var(--c-text-strong);
+            border: var(--hairline) solid var(--c-border-hover); border-radius: var(--r-md);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            padding: var(--sp-2) var(--sp-3); font-size: var(--fs-xs); font-weight: 600;
+            white-space: nowrap; letter-spacing: 0.3px; z-index: 60;
+            opacity: 0; transform: translateY(-4px); pointer-events: none;
+            transition: opacity 0.15s, transform 0.15s;
+        }
+        .clock-wrap:hover .clock-pop,
+        .clock-wrap:focus-visible .clock-pop,
+        .clock-wrap.open .clock-pop { opacity: 1; transform: translateY(0); }
+        .clock-wrap:focus-visible { outline: 2px solid var(--c-brand-1); outline-offset: 2px; border-radius: 4px; }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.4; }
@@ -214,68 +232,89 @@
         .ticker-bar .tradingview-widget-copyright { display: none; }
 
         /* ---------------- Controls ---------------- */
+        /* Controls bar: two groups — selectors (left, shrinkable) and buttons
+           (right, fixed) — that stay on ONE row (nowrap) at every width. */
         .controls {
             padding: var(--sp-2) var(--sp-5);
             display: flex;
             align-items: center;
-            gap: var(--sp-3);
-            flex-wrap: wrap;
+            gap: var(--sp-4);
+            flex-wrap: nowrap;
             background: var(--c-surface);
             border-bottom: var(--hairline) solid var(--c-border-soft);
         }
 
-        /* Mode toggle + Analyze: one fixed group at the end of the controls bar. */
-        .controls-end {
+        /* Selectors group: sizes to its content and shrinks (min-width:0) so the
+           buttons group is never pushed to a new row. */
+        .ctrl-selectors {
             display: flex; align-items: center; gap: var(--sp-3);
+            width: fit-content; min-width: 0; flex: 0 1 auto;
+        }
+        .ctrl-selectors > * { min-width: 0; }
+        .ctrl-field { display: inline-flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+        .interval-field { min-width: 0; }
+
+        /* Buttons group: fixed size, pinned to the row's end. */
+        .ctrl-buttons {
+            display: flex; align-items: center; gap: var(--sp-2);
             flex: 0 0 auto; margin-left: auto;
         }
 
-        /* Symbol + Interval + Reload as one unit. Grouping them means a narrow
-           viewport can keep the trio on a single row instead of letting the
-           flex-wrap on .controls break them apart. min-width:0 on the children
-           lets them SHRINK rather than wrap once space runs out. */
-        .controls-primary {
-            display: flex; align-items: center; gap: var(--sp-3);
-            flex: 1 1 auto; min-width: 0;
-        }
-        .controls-primary > * { min-width: 0; }
-
-        /* Interval field groups its own label + selector. Redundant in the
-           Charts workspace (TradingView supplies interval controls), so it is
-           surfaced ONLY in Keen Eye, where the analysis needs the timeframe.
-           The trio therefore renders as 3 controls in Keen Eye and 2 in Charts;
-           the flex container handles either count without leaving a gap. */
-        .interval-field { display: inline-flex; align-items: center; gap: var(--sp-3); min-width: 0; }
-
         /* ---- Workspace-specific control visibility ----
-           Charts is chart-centric: Symbol · Interval · Reload · Analyze — the
-           Profile picker and the Trader/Analyst toggle (both analysis concerns)
-           are hidden. Keen Eye is analysis-centric: it drops the chart Reload and
-           surfaces the Profile pills + the Trader/Analyst toggle. Interval now
-           shows in BOTH (it sets the analysis timeframe the engine uses). */
-        .app[data-workspace="charts"]  .profile-field   { display: none; }
-        .app[data-workspace="charts"]  .qtw-mode-toggle { display: none; }
-        .app[data-workspace="keeneye"] #reloadBtn       { display: none; }
+           Charts is chart-centric (Symbol · Interval · Reload · Analyze); the
+           Profile picker is hidden. Keen Eye drops the chart Reload and surfaces
+           Profile. Interval shows in both (it sets the analysis timeframe).
+           The Trader/Analyst radiogroup is always hidden — the Analyze split
+           menu drives it now. */
+        .app[data-workspace="charts"]  .profile-field { display: none; }
+        .app[data-workspace="keeneye"] #reloadBtn     { display: none; }
+        .qtw-mode-toggle[hidden] { display: none; }
 
-        /* Profile pill selector (mirrors the hidden #profileSelect). */
-        .profile-field { display: inline-flex; align-items: center; gap: var(--sp-3); min-width: 0; }
-        .visually-hidden-select { display: none; }
-        .profile-pills {
-            display: flex; gap: var(--sp-2); min-width: 0;
-            overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;
+        /* ---- Analyze split / multi-action button ---- */
+        .analyze-split { position: relative; display: inline-flex; flex: 0 0 auto; }
+        .analyze-main {
+            display: inline-flex; align-items: center; gap: var(--sp-2);
+            height: var(--control-h); padding: 0 var(--sp-4);
+            border: none; border-radius: var(--r-md) 0 0 var(--r-md);
+            background: var(--grad-action); color: #fff; font-weight: 700;
+            font-size: var(--fs-sm); font-family: inherit; cursor: pointer;
+            transition: filter 0.2s, opacity 0.2s;
         }
-        .profile-pills::-webkit-scrollbar { display: none; }
-        .profile-pill {
-            flex: 0 0 auto; height: var(--control-h);
-            padding: 0 var(--sp-3); border-radius: 999px;
-            background: transparent; border: var(--hairline) solid transparent;
-            color: var(--c-text-dim); font-size: var(--fs-xs); font-weight: 600;
-            text-transform: uppercase; letter-spacing: 0.4px; cursor: pointer;
-            font-family: inherit; white-space: nowrap; transition: background .15s, color .15s;
+        .analyze-main .analyze-icon { font-size: 0.9em; }
+        .analyze-caret {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: var(--control-h); height: var(--control-h);
+            border: none; border-left: var(--hairline) solid rgba(255, 255, 255, 0.25);
+            border-radius: 0 var(--r-md) var(--r-md) 0;
+            background: linear-gradient(135deg, #00b894, #00d4ff); color: #04121a; cursor: pointer;
+            transition: filter 0.2s;
         }
-        .profile-pill:hover { color: var(--c-text); }
-        .profile-pill.active { background: var(--c-brand-1); color: #05111b; }
-        .profile-pill:focus-visible { outline: 2px solid var(--c-brand-1); outline-offset: 1px; }
+        .analyze-main:hover, .analyze-caret:hover { filter: brightness(1.1); }
+        .analyze-main:disabled, .analyze-split.busy .analyze-caret { opacity: 0.5; cursor: progress; }
+        .analyze-caret i { transition: transform 0.2s; }
+        .analyze-split.open .analyze-caret i { transform: rotate(180deg); }
+        .analyze-menu {
+            position: absolute; top: calc(100% + 6px); right: 0; z-index: 60;
+            min-width: 200px; padding: var(--sp-2);
+            background: var(--c-surface-2); border: var(--hairline) solid var(--c-border-hover);
+            border-radius: var(--r-md); box-shadow: 0 12px 34px rgba(0, 0, 0, 0.45);
+            display: none; flex-direction: column; gap: 2px;
+        }
+        .analyze-split.open .analyze-menu { display: flex; }
+        .analyze-mode {
+            display: grid; grid-template-columns: 16px 1fr auto; align-items: center;
+            gap: var(--sp-2); padding: var(--sp-2) var(--sp-3);
+            background: transparent; border: none; border-radius: var(--r-sm);
+            color: var(--c-text); font-family: inherit; font-size: var(--fs-sm);
+            text-align: left; cursor: pointer;
+        }
+        .analyze-mode:hover { background: var(--c-elevated); }
+        .analyze-mode .am-check { color: var(--c-brand-1); opacity: 0; font-size: 0.85em; }
+        .analyze-mode[aria-checked="true"] .am-check { opacity: 1; }
+        .analyze-mode[aria-checked="true"] .am-name { color: var(--c-text-strong); font-weight: 700; }
+        .analyze-mode .am-desc { color: var(--c-text-dim); font-size: var(--fs-2xs); }
+        .analyze-main:focus-visible, .analyze-caret:focus-visible,
+        .analyze-mode:focus-visible { outline: 2px solid var(--c-brand-1); outline-offset: -2px; }
 
         .controls label {
             font-size: var(--fs-xs);
@@ -866,6 +905,30 @@
             display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--sp-3) var(--sp-4); z-index: 1;
         }
         .qtw-fact { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+        /* Desktop: the vertical stack wastes the right half of a wide hero. Lay the
+           sections into a 2-column grid so the facts sit BESIDE the signal (right),
+           with chips under the signal and the ladder spanning full width. This
+           removes the empty horizontal space and balances the card. Below 900px it
+           reverts to the mobile stack (flex-column) automatically. */
+        @media (min-width: 900px) {
+            .qtw-hero {
+                display: grid;
+                grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+                grid-template-areas:
+                    "top    facts"
+                    "chips  facts"
+                    "ladder ladder";
+                column-gap: var(--sp-5); row-gap: var(--sp-3); align-items: start;
+            }
+            .qtw-hero-top   { grid-area: top; }
+            .qtw-hero-chips { grid-area: chips; }
+            .qtw-hero-facts {
+                grid-area: facts; align-self: center;
+                padding-left: var(--sp-5); border-left: var(--hairline) solid var(--c-border);
+            }
+            .qtw-hero-strip { grid-area: ladder; margin-top: var(--sp-2); }
+        }
         .qtw-fact-label { font-size: var(--fs-2xs); color: var(--c-text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
         .qtw-fact-value { font-size: var(--fs-sm); font-weight: 700; color: var(--c-text-strong); font-variant-numeric: tabular-nums;
                           white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1333,11 +1396,13 @@
         .qtw-empty strong { color: var(--c-text-strong); font-size: var(--fs-lg); font-weight: 700; }
         .qtw-empty p { max-width: 460px; font-size: var(--fs-sm); line-height: 1.6; color: var(--qtw-text-muted); }
 
+        /* #analyzeBtn is the split button's main action (.analyze-main). Teal, and
+           left-rounded only so it butts against the caret to form one control. */
         #analyzeBtn {
             height: var(--control-h); background: linear-gradient(135deg, #00b894, #00d4ff);
-            color: #04121a; border: none; padding: 0 var(--sp-4); border-radius: var(--r-md);
+            color: #04121a; border: none; padding: 0 var(--sp-4); border-radius: var(--r-md) 0 0 var(--r-md);
             font-size: var(--fs-sm); font-family: inherit; font-weight: 700; cursor: pointer;
-            transition: opacity 0.2s;
+            transition: opacity 0.2s, filter 0.2s;
         }
         #analyzeBtn:hover { opacity: 0.88; }
         #analyzeBtn:disabled { opacity: 0.5; cursor: progress; }
@@ -1366,48 +1431,34 @@
             .qtw-gate-msg { padding-left: 0; }
         }
 
-        /* ---------------- Narrow screens ---------------- */
+        /* ---------------- Below 760px: hide selector labels ----------------
+           The controls stay self-explanatory (symbol logo/ticker, interval value,
+           profile value). Labels are VISUALLY hidden — not display:none — so the
+           #symbolLabel aria-labelledby target stays in the accessibility tree.
+           Selectors also become shrinkable so the two groups hold one row. */
+        @media (max-width: 760px) {
+            .ctrl-field > label {
+                position: absolute; width: 1px; height: 1px;
+                margin: -1px; padding: 0; border: 0;
+                overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+            }
+            .ctrl-selectors { flex: 1 1 0; }
+            .ctrl-selectors .symbol-select { flex: 1 1 0; min-width: 56px; }
+            .ctrl-selectors .select-wrap, .ctrl-selectors select { min-width: 0; }
+            .ctrl-selectors select { text-overflow: ellipsis; }
+        }
+
+        /* ---------------- Below 620px: compact chrome + icon-only Analyze ---- */
         @media (max-width: 620px) {
             .header { justify-content: center; }
             .header .status { margin-left: 0; }
-            .controls { gap: var(--sp-2); }
-            .controls label { font-size: var(--fs-2xs); }
+            .controls { gap: var(--sp-3); padding-left: var(--sp-3); padding-right: var(--sp-3); }
+            .ctrl-buttons { gap: var(--sp-1); }
 
-            /* Row 1 = Symbol (takes the slack) · Interval · [Reload | Trader/Analyst]
-               · Analyze — all four on ONE row (matches charts_new / keen_new).
-               Symbol shrinks from a 0 basis (its ticker truncates) so the fixed
-               end group always fits beside it instead of wrapping. margin-left is
-               dropped here so the auto-margin can't push the end group to a new
-               line on a tight width. */
-            /* basis 0 (not auto): so the group's hypothetical size is small and the
-               fixed end group shares row 1 instead of being pushed to a new line.
-               (auto would resolve to the symbol's max-content and overflow the row.) */
-            .controls-primary { flex: 1 1 0; min-width: 0; gap: var(--sp-2); }
-            .controls-primary .symbol-select { flex: 1 1 0; min-width: 64px; }
-            .controls-primary .interval-field { flex: 0 0 auto; }
-            .controls-end { gap: var(--sp-2); margin-left: 0; flex: 0 0 auto; }
-            /* Compact the Trader/Analyst toggle so the row-1 quartet fits ~360px. */
-            .qtw-mode-toggle label { padding: 0 var(--sp-2); font-size: var(--fs-2xs); }
-            #analyzeBtn { padding: 0 var(--sp-3); }
-
-            /* Profile pills drop to their OWN full-width row beneath row 1
-               (Keen Eye only — hidden in Charts by the workspace rule). `order`
-               places them after the primary + end groups. */
-            .profile-field { flex: 1 1 100%; order: 10; }
-            .profile-pills { flex: 1 1 auto; }
-
-            /* Labels: removed from view, kept in the accessibility tree.
-               display:none would break the aria-labelledby references on the
-               symbol trigger/listbox and the profile radiogroup. */
-            .controls-primary label,
-            .profile-field > label {
-                position: absolute;
-                width: 1px; height: 1px;
-                margin: -1px; padding: 0; border: 0;
-                overflow: hidden;
-                clip-path: inset(50%);
-                white-space: nowrap;
-            }
+            /* Analyze collapses to an ICON button; the caret stays for the menu. */
+            .analyze-main .analyze-text { display: none; }
+            .analyze-main { padding: 0; width: var(--control-h); justify-content: center; }
+            .analyze-main .analyze-icon { font-size: 1.05em; }
         }
     </style>
 </head>
@@ -1428,7 +1479,13 @@
                 <span class="conn-chip" id="connChip" title="Analysis proxy connection: Idle">
                     <span class="dot" id="connDot"></span>
                 </span>
-                <span id="clock">--:--:-- --</span>
+                <!-- Time stays as the label; hover (desktop) or tap (mobile) reveals
+                     the full day + date in a design-matched popover. -->
+                <span class="clock-wrap" id="clockWrap" tabindex="0" role="button"
+                      aria-label="Show today's full date" aria-expanded="false">
+                    <span id="clock">--:--:-- --</span>
+                    <span class="clock-pop" id="clockPop" role="tooltip" aria-hidden="true"></span>
+                </span>
             </div>
 
             <!-- Header actions: workspace toggle, Calculator, Save Profile — one fixed group at the end. -->
@@ -1448,78 +1505,100 @@
             </div>
         </div>
 
-        <!-- Controls -->
+        <!-- Controls — two dedicated groups that always stay on ONE row:
+             (1) .ctrl-selectors  Symbol · Interval · Profile  (fit-content;
+                 labels hide < 760px, the controls stay self-explanatory).
+             (2) .ctrl-buttons    Reload (Charts) · Analyze split-button.
+             The old .controls-primary / .controls-end split is retired. -->
         <div class="controls" id="controlsBar">
-            <!-- Primary trio: Symbol, Interval and Reload travel together as one
-                 unit so narrow screens can keep all three on a single row.
-                 Labels here are VISUALLY hidden (not display:none) below 620px:
-                 #symbolLabel is an aria-labelledby target for both the trigger
-                 and the listbox, so it has to stay in the accessibility tree. -->
-            <div class="controls-primary">
-            <label id="symbolLabel">Symbol:</label>
-            <div class="symbol-select" id="symbolSelect">
-                <button type="button" class="symbol-trigger" id="symbolTrigger"
-                        aria-haspopup="listbox" aria-expanded="false" aria-labelledby="symbolLabel symbolTrigger">
-                    <span class="sym-logo" id="triggerLogo"></span>
-                    <span class="sym-ticker" id="triggerTicker">&mdash;</span>
-                    <span class="caret">&#x25BC;</span>
+
+            <!-- ===== Selectors group ===== -->
+            <div class="ctrl-selectors">
+                <div class="ctrl-field" id="symbolField">
+                    <label id="symbolLabel">Symbol</label>
+                    <div class="symbol-select" id="symbolSelect">
+                        <button type="button" class="symbol-trigger" id="symbolTrigger"
+                                aria-haspopup="listbox" aria-expanded="false" aria-labelledby="symbolLabel symbolTrigger">
+                            <span class="sym-logo" id="triggerLogo"></span>
+                            <span class="sym-ticker" id="triggerTicker">&mdash;</span>
+                            <span class="caret">&#x25BC;</span>
+                        </button>
+                        <div class="symbol-panel" id="symbolPanel">
+                            <div id="symbolOptions" role="listbox" aria-labelledby="symbolLabel"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interval sets the analysis timeframe; shown in both workspaces. -->
+                <div class="ctrl-field interval-field" id="intervalField">
+                    <label for="intervalSelect">Interval</label>
+                    <div class="select-wrap">
+                        <select id="intervalSelect">
+                            <option value="1">1m</option>
+                            <option value="5">5m</option>
+                            <option value="15">15m</option>
+                            <option value="30">30m</option>
+                            <option value="60" selected>1h</option>
+                            <option value="240">4h</option>
+                            <option value="D">D</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Profile: a native dropdown in the same visual language as
+                     Symbol/Interval (Keen Eye only). -->
+                <div class="ctrl-field profile-field" id="profileField">
+                    <label for="profileSelect">Profile</label>
+                    <div class="select-wrap">
+                        <select id="profileSelect">
+                            <option value="conservative">Conservative</option>
+                            <option value="balanced" selected>Balanced</option>
+                            <option value="aggressive">Aggressive</option>
+                            <option value="research_structure_only">Research A — Structure</option>
+                            <option value="research_trend_following">Research B — Trend</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== Buttons group ===== -->
+            <div class="ctrl-buttons">
+                <button type="button" id="reloadBtn" aria-label="Reload chart" title="Reload chart">
+                    <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
                 </button>
-                <div class="symbol-panel" id="symbolPanel">
-                    <div id="symbolOptions" role="listbox" aria-labelledby="symbolLabel"></div>
-                </div>
-            </div>
 
-            <!-- Interval + chart-style pickers are redundant inside the Charts
-                 workspace: the TradingView widget supplies its own. The style
-                 picker is removed entirely; the interval field is kept in the
-                 DOM but only shown in the Keen Eye workspace, where the analysis
-                 needs a timeframe and there is no chart toolbar to set one. -->
-            <div class="interval-field" id="intervalField">
-                <label for="intervalSelect">Interval:</label>
-                <div class="select-wrap">
-                    <select id="intervalSelect">
-                        <option value="1">1m</option>
-                        <option value="5">5m</option>
-                        <option value="15">15m</option>
-                        <option value="30">30m</option>
-                        <option value="60" selected>1h</option>
-                        <option value="240">4h</option>
-                        <option value="D">D</option>
-                    </select>
-                </div>
-            </div>
-
-            <button type="button" id="reloadBtn" aria-label="Reload chart" title="Reload chart">
-                <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-            </button>
-            </div><!-- /.controls-primary -->
-
-            <!-- Profile: a horizontal PILL selector (surfaced in Keen Eye only).
-                 The native <select> stays in the DOM as the single source of truth
-                 for persistence and Analyze; #profilePills mirrors it, so all the
-                 existing wiring (savePref, analyze) keeps working unchanged. -->
-            <div class="profile-field">
-                <label for="profileSelect" id="profileLabel">Profile:</label>
-                <div class="profile-pills" id="profilePills" role="radiogroup" aria-labelledby="profileLabel"></div>
-                <select id="profileSelect" class="visually-hidden-select" aria-hidden="true" tabindex="-1">
-                    <option value="conservative">Conservative</option>
-                    <option value="balanced" selected>Balanced</option>
-                    <option value="aggressive">Aggressive</option>
-                    <option value="research_structure_only">Research A — Structure</option>
-                    <option value="research_trend_following">Research B — Trend</option>
-                </select>
-            </div>
-
-            <!-- Analysis-detail toggle + Analyze: one fixed group at the end. -->
-            <div class="controls-end">
-                <div class="qtw-mode-toggle" role="radiogroup" aria-label="Analysis detail mode">
+                <!-- Trader/Analyst radiogroup — kept as the source of truth for
+                     QT.card mode + persistence; visually hidden because the split
+                     Analyze menu now drives it. -->
+                <div class="qtw-mode-toggle" role="radiogroup" aria-label="Analysis detail mode" hidden>
                     <input type="radio" id="modeTrader" name="uiMode" value="trader">
                     <label for="modeTrader">Trader</label>
                     <input type="radio" id="modeAnalyst" name="uiMode" value="analyst">
                     <label for="modeAnalyst">Analyst</label>
                 </div>
 
-                <button type="button" id="analyzeBtn">Analyze</button>
+                <!-- Analyze split/multi-action button: main = Analyze, caret opens
+                     the analysis-detail-mode menu. Collapses to icon-only < 620px. -->
+                <div class="analyze-split" id="analyzeSplit">
+                    <button type="button" id="analyzeBtn" class="analyze-main" title="Analyze">
+                        <i class="fa-solid fa-bolt analyze-icon" aria-hidden="true"></i>
+                        <span class="analyze-text">Analyze</span>
+                    </button>
+                    <button type="button" id="analyzeMenuBtn" class="analyze-caret"
+                            aria-haspopup="menu" aria-expanded="false" aria-label="Choose analysis detail mode">
+                        <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                    </button>
+                    <div class="analyze-menu" id="analyzeMenu" role="menu" aria-label="Analysis detail mode">
+                        <button type="button" class="analyze-mode" role="menuitemradio" data-mode="trader" aria-checked="true">
+                            <i class="fa-solid fa-check am-check" aria-hidden="true"></i>
+                            <span class="am-name">Trader</span><span class="am-desc">Decision-focused</span>
+                        </button>
+                        <button type="button" class="analyze-mode" role="menuitemradio" data-mode="analyst" aria-checked="false">
+                            <i class="fa-solid fa-check am-check" aria-hidden="true"></i>
+                            <span class="am-name">Analyst</span><span class="am-desc">Full engine output</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1694,9 +1773,38 @@
             return h + ':' + pad(shifted.getUTCMinutes()) + ' ' + suffix;
         }
 
+        // Full day + date in Kuwait time, formatted "Monday 27 Jul 2026".
+        function kuwaitDate() {
+            const now = new Date();
+            try {
+                const o = { timeZone: 'Asia/Kuwait' };
+                return now.toLocaleDateString('en-GB', Object.assign({ weekday: 'long' }, o)) + ' ' +
+                       now.toLocaleDateString('en-GB', Object.assign({ day: 'numeric' }, o)) + ' ' +
+                       now.toLocaleDateString('en-GB', Object.assign({ month: 'short' }, o)) + ' ' +
+                       now.toLocaleDateString('en-GB', Object.assign({ year: 'numeric' }, o));
+            } catch (e) { return now.toDateString(); }
+        }
+        var clockPopEl = document.getElementById('clockPop');
         function updateClock() {
             clockEl.textContent = kuwaitTime();
+            if (clockPopEl) clockPopEl.textContent = kuwaitDate();   // keep fresh across midnight
         }
+        // Tap-to-toggle for touch devices (hover/focus are handled in CSS).
+        (function wireClock() {
+            var wrap = document.getElementById('clockWrap');
+            if (!wrap) return;
+            wrap.addEventListener('click', function () {
+                var open = wrap.classList.toggle('open');
+                wrap.setAttribute('aria-expanded', String(open));
+            });
+            wrap.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); wrap.click(); }
+                if (e.key === 'Escape') { wrap.classList.remove('open'); wrap.setAttribute('aria-expanded', 'false'); }
+            });
+            document.addEventListener('click', function (e) {
+                if (!wrap.contains(e.target)) { wrap.classList.remove('open'); wrap.setAttribute('aria-expanded', 'false'); }
+            });
+        })();
 
         // ---------------------------------------------------------------
         // Ticker tape widget - mounted into the top ticker bar
@@ -2238,46 +2346,49 @@
         }
 
         // ---------------------------------------------------------------
-        // Profile pill selector — a horizontal, touch-friendly mirror of the
-        // (visually hidden) #profileSelect. The select stays authoritative for
-        // persistence + Analyze; clicking a pill just drives it. Short labels are
-        // derived from the option text (the part after an em-dash, else the whole).
+        // Analyze split-button menu — the caret opens a menu of analysis detail
+        // modes (Trader / Analyst). Selecting one drives the hidden #modeTrader/
+        // #modeAnalyst radiogroup (still the source of truth for QT.card + save),
+        // so all existing mode wiring keeps working. The current mode is reflected
+        // back into the menu (checkmark) and the split button's title.
         // ---------------------------------------------------------------
-        var profileSelectEl = document.getElementById('profileSelect');
-        var profilePillsEl = document.getElementById('profilePills');
-        function syncProfilePills() {
-            if (!profilePillsEl) return;
-            var val = profileSelectEl.value;
-            Array.prototype.forEach.call(profilePillsEl.children, function (b) {
-                var on = b.dataset.value === val;
-                b.classList.toggle('active', on);
-                b.setAttribute('aria-checked', String(on));
-                b.tabIndex = on ? 0 : -1;
-            });
-        }
-        function buildProfilePills() {
-            if (!profilePillsEl || !profileSelectEl) return;
-            profilePillsEl.innerHTML = '';
-            Array.prototype.forEach.call(profileSelectEl.options, function (opt) {
-                var pill = document.createElement('button');
-                pill.type = 'button';
-                pill.className = 'profile-pill';
-                pill.setAttribute('role', 'radio');
-                pill.dataset.value = opt.value;
-                pill.textContent = opt.textContent.split('—').pop().trim();
-                pill.title = opt.textContent;
-                pill.addEventListener('click', function () {
-                    if (profileSelectEl.value === opt.value) return;
-                    profileSelectEl.value = opt.value;
-                    profileSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
-                    syncProfilePills();
+        function wireAnalyzeSplit() {
+            var split = document.getElementById('analyzeSplit');
+            var caretBtn = document.getElementById('analyzeMenuBtn');
+            var menu = document.getElementById('analyzeMenu');
+            if (!split || !caretBtn || !menu) return;
+            var modeItems = menu.querySelectorAll('.analyze-mode');
+
+            function reflectMode() {
+                var mode = (window.QT && QT.card) ? QT.card.getMode() : 'trader';
+                Array.prototype.forEach.call(modeItems, function (mi) {
+                    mi.setAttribute('aria-checked', String(mi.dataset.mode === mode));
                 });
-                profilePillsEl.appendChild(pill);
+                var main = document.getElementById('analyzeBtn');
+                if (main) main.title = 'Analyze · ' + (mode === 'analyst' ? 'Analyst' : 'Trader') + ' detail';
+            }
+            function closeMenu() {
+                split.classList.remove('open');
+                caretBtn.setAttribute('aria-expanded', 'false');
+            }
+            caretBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                var open = split.classList.toggle('open');
+                caretBtn.setAttribute('aria-expanded', String(open));
+                if (open) reflectMode();
             });
-            // Keep pills in step when the select changes from anywhere else
-            // (persistence restore, programmatic set).
-            profileSelectEl.addEventListener('change', syncProfilePills);
-            syncProfilePills();
+            Array.prototype.forEach.call(modeItems, function (mi) {
+                mi.addEventListener('click', function () {
+                    // Drive the authoritative radio so QT.card + persistence update.
+                    var radio = document.getElementById(mi.dataset.mode === 'analyst' ? 'modeAnalyst' : 'modeTrader');
+                    if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change', { bubbles: true })); }
+                    reflectMode();
+                    closeMenu();
+                });
+            });
+            document.addEventListener('click', function (e) { if (!split.contains(e.target)) closeMenu(); });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMenu(); });
+            reflectMode();
         }
 
         // ---------------------------------------------------------------
@@ -2296,7 +2407,7 @@
         wireWorkspaceSwitch();
         wireSaveProfile();
         wirePrefPersistence();
-        buildProfilePills();
+        wireAnalyzeSplit();
         setConn('loading', 'Checking analysis proxy…');
         probeConnection();
         // Keep the indicator live — re-check the proxy every 60s.
