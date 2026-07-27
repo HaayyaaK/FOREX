@@ -30,7 +30,7 @@
   --c-border:#2a2a4a; --c-border-soft:#1e1e35;
   --c-text:#e0e0e0; --c-text-strong:#ffffff; --c-text-dim:#888888;
   --c-text-faint:#8a8ab2; --c-text-muted:#8a8aa4;
-  --c-brand-1:#22d3ee; --c-brand-2:#818cf8;
+  --c-brand-1:#22d3ee; --c-brand-2:#818cf8; --c-accent-2:#00d4ff;
   --c-warn:#ffb020; --c-warn-soft:rgba(255,176,32,0.14);
   --grad-brand:linear-gradient(90deg,var(--c-brand-1),var(--c-brand-2));
   --shadow:0 10px 30px rgba(0,0,0,0.35); --hairline:1px;
@@ -102,7 +102,19 @@ p.body{font-size:var(--fs-sm);color:var(--c-text-muted);margin-block-end:var(--s
 }
 a.inline{color:var(--c-brand-1);text-decoration:none;border-block-end:1px dotted rgba(34,211,238,0.4)}
 a.inline:hover{border-block-end-style:solid}
-footer.site{margin-block-start:var(--sp-6);color:var(--c-text-faint);font-size:var(--fs-xs);text-align:center;line-height:1.6}
+/* Unified footer — shared design across dashboard / calc / validation / disclaimer. */
+.app-footer{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);flex-wrap:wrap;
+  margin-block-start:var(--sp-6);padding:var(--sp-2) var(--sp-4);
+  padding-bottom:calc(var(--sp-1) + env(safe-area-inset-bottom,0px));
+  font-size:var(--fs-2xs);color:var(--c-text-faint);
+  background:linear-gradient(135deg,var(--c-surface-2) 0%,#16213e 100%);
+  border-top:var(--hairline) solid var(--c-border-soft)}
+.app-footer a{display:inline-flex;font-weight:bold;align-items:center;gap:var(--sp-1);
+  color:var(--c-text-muted);text-decoration:none;transition:color .2s}
+.app-footer a:hover{color:var(--c-accent-2)}
+.app-footer a:focus-visible{outline:2px solid var(--c-accent-2);outline-offset:2px;border-radius:var(--r-sm)}
+.app-footer a i{color:var(--c-accent-2);font-size:.9em}
+.app-footer .foot-links{display:inline-flex;align-items:center;gap:var(--sp-4);flex-wrap:wrap}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -148,7 +160,13 @@ footer.site{margin-block-start:var(--sp-6);color:var(--c-text-faint);font-size:v
     <h2 class="sec">Changes to this notice &amp; contact</h2>
     <p class="body">We may update this Disclaimer at any time; changes take effect upon posting to this page. For any inquiry about this notice or the tool, contact us via <a class="inline" href="https://hayyaak.com">hayyaak.com</a>.</p>
 
-    <footer class="site">An analysis and data-visualization tool only — it does not produce recommendations, trade signals, or financial advice.<br>&copy; <span id="year">2026</span> hayyaak.com &middot; All rights reserved.</footer>
+    <footer class="app-footer">
+        <span>&copy; <span id="year">2026</span> hayyaak.com &middot; All rights reserved.</span>
+        <span class="foot-links">
+            <a href="dashboard.html"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to Dashboard</a>
+            <a href="https://hayyaak.com/" target="_blank" rel="noopener"><i class="fa-solid fa-globe" aria-hidden="true"></i> hayyaak.com</a>
+        </span>
+    </footer>
   </main>
 </div>
 <script>document.getElementById('year').textContent = new Date().getFullYear();</script>

@@ -137,7 +137,9 @@
          * ------------------------------------------------------------------ */
         research_structure_only: {
             id: 'research_structure_only',
-            name: 'Research Profile A — Structure Only',
+            // Display label only (id/weights/gates/logic unchanged). Kept short so
+            // every user-facing surface reads "Structure" consistently.
+            name: 'Structure',
             description: 'Isolates market-structure and SMC evidence. Tests the D4 claim ' +
                          'that institutional structure outperforms indicator stacks.',
             categoryWeights: {
@@ -158,7 +160,7 @@
 
         research_trend_following: {
             id: 'research_trend_following',
-            name: 'Research Profile B — Trend Following',
+            name: 'Trend',
             description: 'Implements the D2 conclusion that regime-conditioned trend/breakout ' +
                          'frameworks carry the strongest peer-reviewed evidence.',
             categoryWeights: {

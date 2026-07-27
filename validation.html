@@ -255,12 +255,25 @@
         .hidden { display: none !important; }
 
         /* ---------------- Footer ---------------- */
-        .footer {
-            padding: var(--sp-4) var(--sp-5); text-align: center;
-            font-size: var(--fs-2xs); color: var(--c-text-dim);
-            border-top: var(--hairline) solid var(--c-border-soft); margin-top: var(--sp-4);
+        /* Unified footer — shared design across dashboard / calc / validation / disclaimer. */
+        .app-footer {
+            flex: 0 0 auto;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: var(--sp-3); flex-wrap: wrap;
+            padding: var(--sp-2) var(--sp-4);
+            padding-bottom: calc(var(--sp-1) + env(safe-area-inset-bottom, 0px));
+            font-size: var(--fs-2xs); color: var(--c-text-faint);
+            background: linear-gradient(135deg, var(--c-surface-2) 0%, #16213e 100%);
+            border-top: var(--hairline) solid var(--c-border-soft);
         }
-        .footer a { color: var(--c-text-faint); }
+        .app-footer a {
+            display: inline-flex; font-weight: bold; align-items: center; gap: var(--sp-1);
+            color: var(--c-text-muted); text-decoration: none; transition: color 0.2s;
+        }
+        .app-footer a:hover { color: var(--c-accent-2); }
+        .app-footer a:focus-visible { outline: 2px solid var(--c-accent-2); outline-offset: 2px; border-radius: var(--r-sm); }
+        .app-footer a i { color: var(--c-accent-2); font-size: 0.9em; }
+        .app-footer .foot-links { display: inline-flex; align-items: center; gap: var(--sp-4); flex-wrap: wrap; }
     </style>
 </head>
 <body>
@@ -393,9 +406,12 @@
         </div>
     </div>
 
-    <footer class="footer">
-        © 2026 hayyaak.com · Strategy Validation Lab ·
-        <a href="disclaimer.html">Disclaimer — not financial advice</a>
+    <footer class="app-footer">
+        <span>&copy; 2026 hayyaak.com &middot; All rights reserved.</span>
+        <span class="foot-links">
+            <a href="disclaimer.html"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Disclaimer &mdash; not financial advice</a>
+            <a href="https://hayyaak.com/" target="_blank" rel="noopener"><i class="fa-solid fa-globe" aria-hidden="true"></i> hayyaak.com</a>
+        </span>
     </footer>
 
     <!-- Engine (same load order as dashboard.html) + backtester + orchestration app. -->

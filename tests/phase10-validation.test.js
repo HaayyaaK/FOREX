@@ -111,8 +111,13 @@ T.test('Monte-Carlo output matches what the MC tiles render, and is deterministi
 T.suite('Phase 10 — validation.html structure & self-containment');
 
 T.test('no external/CDN resources — everything is locally hosted', function () {
-    T.ok(!/(src|href)\s*=\s*["']https?:\/\//i.test(VALIDATION_HTML),
-         'no absolute http(s) src/href (no CDN, no Google Fonts)');
+    // Forbid externally-LOADED resources (scripts, images, fonts, stylesheets).
+    // A plain navigation <a href="https://…"> (e.g. the footer website link) is
+    // fine — it is a link, not a resource the page fetches.
+    T.ok(!/\ssrc\s*=\s*["']https?:\/\//i.test(VALIDATION_HTML),
+         'no external src= (no CDN scripts/images)');
+    T.ok(!/<link\b[^>]*href\s*=\s*["']https?:\/\//i.test(VALIDATION_HTML),
+         'no external stylesheet/font <link>');
     ['cdn.', 'googleapis', 'unpkg', 'jsdelivr', 'cloudflare.com/ajax'].forEach(function (bad) {
         T.ok(VALIDATION_HTML.indexOf(bad) === -1, 'no reference to ' + bad);
     });

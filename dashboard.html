@@ -93,6 +93,14 @@
             --fs-md:  clamp(0.84rem, 0.78rem + 0.25vw, 1rem);
             --fs-lg:  clamp(1.05rem, 0.88rem + 0.78vw, 1.5rem);
 
+            /* Controls-bar typography — dynamic (clamp) sizes so labels, selector
+               values and buttons scale smoothly from small screens (compact but
+               readable) to wide screens (comfortable), preventing overlap/
+               truncation. Also gives Arabic localization headroom later. */
+            --ctrl-fs-label: clamp(0.56rem, 0.48rem + 0.28vw, 0.72rem);
+            --ctrl-fs-value: clamp(0.76rem, 0.66rem + 0.40vw, 0.92rem);
+            --ctrl-fs-btn:   clamp(0.76rem, 0.66rem + 0.40vw, 0.92rem);
+
             /* ---- Radii ---- */
             --r-sm: 4px;
             --r-md: 6px;
@@ -145,15 +153,21 @@
         /* ---------------- Header ---------------- */
         /* Trimmed vertical padding + tighter title keep the chrome compact so the
            chart owns more of the viewport. */
+        /* Header is a guaranteed SINGLE row at every width: nowrap, with the brand
+           as the only shrink sink (min-width:0 + ellipsis) so the status and the
+           fixed action icons never wrap or overflow. */
         .header {
             background: linear-gradient(135deg, var(--c-surface-2) 0%, #16213e 100%);
             padding: var(--sp-2) var(--sp-5);
             display: flex;
             align-items: center;
             gap: var(--sp-3);
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             border-bottom: var(--hairline) solid var(--c-border);
         }
+        .header h1 { flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        .header .status { flex: 0 0 auto; }
+        .header-actions { flex: 0 0 auto; }
 
         .header h1 {
             font-size: clamp(1rem, 0.85rem + 0.68vw, 1.35rem);
@@ -277,7 +291,7 @@
             height: var(--control-h); padding: 0 var(--sp-4);
             border: none; border-radius: var(--r-md) 0 0 var(--r-md);
             background: var(--grad-action); color: #fff; font-weight: 700;
-            font-size: var(--fs-sm); font-family: inherit; cursor: pointer;
+            font-size: var(--ctrl-fs-btn); font-family: inherit; cursor: pointer;
             transition: filter 0.2s, opacity 0.2s;
         }
         .analyze-main .analyze-icon { font-size: 0.9em; }
@@ -305,7 +319,7 @@
             display: grid; grid-template-columns: 16px 1fr auto; align-items: center;
             gap: var(--sp-2); padding: var(--sp-2) var(--sp-3);
             background: transparent; border: none; border-radius: var(--r-sm);
-            color: var(--c-text); font-family: inherit; font-size: var(--fs-sm);
+            color: var(--c-text); font-family: inherit; font-size: var(--ctrl-fs-btn);
             text-align: left; cursor: pointer;
         }
         .analyze-mode:hover { background: var(--c-elevated); }
@@ -317,7 +331,7 @@
         .analyze-mode:focus-visible { outline: 2px solid var(--c-brand-1); outline-offset: -2px; }
 
         .controls label {
-            font-size: var(--fs-xs);
+            font-size: var(--ctrl-fs-label);
             color: var(--c-text-dim);
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -359,7 +373,7 @@
             /* room on the right for the shared arrow */
             padding: 0 calc(var(--arrow-gap) * 2 + var(--arrow-size)) 0 var(--sp-3);
             border-radius: var(--r-md);
-            font-size: var(--fs-sm);
+            font-size: var(--ctrl-fs-value);
             font-family: inherit;
             cursor: pointer;
             appearance: none;
@@ -448,7 +462,7 @@
             border: var(--hairline) solid var(--c-border);
             padding: 0 var(--sp-3);
             border-radius: var(--r-md);
-            font-size: var(--fs-sm);
+            font-size: var(--ctrl-fs-value);
             font-family: inherit;
             line-height: 1.2;
             cursor: pointer;
@@ -604,27 +618,29 @@
         }
         /* Small, always-visible footer pinned to the bottom of the app shell:
            copyright + a link to the disclaimer. Kept intentionally thin. */
+        /* Unified footer — shared across dashboard / calc / validation / disclaimer. */
         .app-footer {
             flex: 0 0 auto;
             display: flex; align-items: center; justify-content: space-between;
             gap: var(--sp-3); flex-wrap: wrap;
-            padding: var(--sp-1) var(--sp-5);
+            padding: var(--sp-2) var(--sp-4);
             padding-bottom: calc(var(--sp-1) + env(safe-area-inset-bottom, 0px));
             font-size: var(--fs-2xs); color: var(--c-text-faint);
-            background: var(--c-surface);
+            background: linear-gradient(135deg, var(--c-surface-2) 0%, #16213e 100%);
             border-top: var(--hairline) solid var(--c-border-soft);
         }
         .app-footer a {
-            display: inline-flex; align-items: center; gap: var(--sp-1);
+            display: inline-flex; font-weight: bold; align-items: center; gap: var(--sp-1);
             color: var(--c-text-muted); text-decoration: none;
             transition: color 0.2s;
         }
-        .app-footer a:hover { color: var(--c-warn); }
+        .app-footer a:hover { color: var(--c-accent-2); }
         .app-footer a:focus-visible { outline: 2px solid var(--c-accent-2); outline-offset: 2px; border-radius: var(--r-sm); }
-        .app-footer a i { color: var(--c-warn); font-size: 0.9em; }
+        .app-footer a i { color: var(--c-accent-2); font-size: 0.9em; }
+        .app-footer .foot-links { display: inline-flex; align-items: center; gap: var(--sp-4); flex-wrap: wrap; }
 
         /* Header row: brand | status | header-actions (workspace toggle, Calculator, Save Profile). */
-        .header h1 { flex: 0 0 auto; }
+        .header h1 { flex: 0 1 auto; }
         .header .status { margin-left: auto; }
 
         /* Connection indicator reuses the status dot, recoloured by real state. */
@@ -1401,7 +1417,7 @@
         #analyzeBtn {
             height: var(--control-h); background: linear-gradient(135deg, #00b894, #00d4ff);
             color: #04121a; border: none; padding: 0 var(--sp-4); border-radius: var(--r-md) 0 0 var(--r-md);
-            font-size: var(--fs-sm); font-family: inherit; font-weight: 700; cursor: pointer;
+            font-size: var(--ctrl-fs-btn); font-family: inherit; font-weight: 700; cursor: pointer;
             transition: opacity 0.2s, filter 0.2s;
         }
         #analyzeBtn:hover { opacity: 0.88; }
@@ -1459,6 +1475,22 @@
             .analyze-main .analyze-text { display: none; }
             .analyze-main { padding: 0; width: var(--control-h); justify-content: center; }
             .analyze-main .analyze-icon { font-size: 1.05em; }
+        }
+
+        /* ---------------- Below 340px: market-status chip → bare dot ----------
+           Drops the chip's pill chrome (padding/border/background) so only the
+           status dot shows, reclaiming ~14px. The clock stays. Header padding and
+           gaps tighten so brand · status · actions still hold ONE row at 320px;
+           the brand (only shrink sink) absorbs any remaining shortfall. */
+        @media (max-width: 340px) {
+            .conn-chip { width: auto; height: auto; padding: 0; background: none; border: none; }
+            .header { padding-left: var(--sp-3); padding-right: var(--sp-3); gap: var(--sp-2); }
+            .header-actions { gap: 3px; }
+            .header .status { gap: var(--sp-1); }
+            /* Brand collapses to its logo icon (cleaner than an ellipsis) — the
+               "Keen Eye" text node is zeroed while the icon is re-sized up. */
+            .header h1 { font-size: 0; }
+            .header h1 .brand-ico { font-size: 1.35rem; margin-right: 0; }
         }
     </style>
 </head>
@@ -1554,8 +1586,8 @@
                             <option value="conservative">Conservative</option>
                             <option value="balanced" selected>Balanced</option>
                             <option value="aggressive">Aggressive</option>
-                            <option value="research_structure_only">Research A — Structure</option>
-                            <option value="research_trend_following">Research B — Trend</option>
+                            <option value="research_structure_only">Structure</option>
+                            <option value="research_trend_following">Trend</option>
                         </select>
                     </div>
                 </div>
@@ -1641,9 +1673,10 @@
     <!-- Small footer: copyright + disclaimer link (pinned to the app shell bottom). -->
     <footer class="app-footer">
         <span>&copy; <span id="footYear">2026</span> hayyaak.com &middot; All rights reserved.</span>
-        <a href="disclaimer.html" rel="noopener">
-            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Disclaimer &mdash; not financial advice
-        </a>
+        <span class="foot-links">
+            <a href="disclaimer.html"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Disclaimer &mdash; not financial advice</a>
+            <a href="https://hayyaak.com/" target="_blank" rel="noopener"><i class="fa-solid fa-globe" aria-hidden="true"></i> hayyaak.com</a>
+        </span>
     </footer>
   </div>
 

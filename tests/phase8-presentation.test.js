@@ -801,11 +801,18 @@ T.test('the analyst-only visibility rule is a pure CSS switch, not a script rebu
          'CSS-only rule hides analyst-only content in trader mode');
 });
 
-T.test('the mode toggle is laid out to wrap, not overflow, on narrow viewports', function () {
+T.test('the header holds a single row at every width (nowrap + shrinkable brand)', function () {
     T.ok(/\.qtw-mode-toggle\s*\{[^}]*flex:\s*0 0 auto/.test(DASHBOARD_HTML),
-         'toggle does not stretch or force overflow');
-    T.ok(/\.header\s*\{[^}]*flex-wrap:\s*wrap/.test(DASHBOARD_HTML),
-         'header wraps its children (toggle included) on narrow screens');
+         'the mode radiogroup does not stretch');
+    // The header is a guaranteed single row: it never wraps, and the brand is the
+    // shrink sink (min-width:0 + ellipsis) so status/actions never overflow.
+    T.ok(/\.header\s*\{[^}]*flex-wrap:\s*nowrap/.test(DASHBOARD_HTML),
+         'header never wraps its children');
+    T.ok(/\.header h1\s*\{[^}]*min-width:\s*0[^}]*text-overflow:\s*ellipsis/.test(DASHBOARD_HTML),
+         'the brand shrinks (min-width:0 + ellipsis) as the single overflow sink');
+    // Below 340px the market-status chip collapses to a bare dot.
+    T.ok(/@media \(max-width: 340px\)[\s\S]*\.conn-chip\s*\{[^}]*background:\s*none/.test(DASHBOARD_HTML),
+         'below 340px connChip drops its chrome to a dot-only');
 });
 
 T.suite('Phase 8.5 — UX audit follow-up: condensed gates, no layout gaps');
