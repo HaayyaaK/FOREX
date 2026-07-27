@@ -760,7 +760,12 @@
                     currentRetracement: levels.fibonacci.currentRetracement,
                     levels: levels.fibonacci.levels
                 } : null,
-                confluence: levels.confluence
+                confluence: levels.confluence,
+                // Classic floor-trader pivots (pivot, r1-r3, s1-s3) already computed
+                // by the indicator engine from the previous period's HLC. Passed
+                // through for DISPLAY only — no decision reads these; they are not
+                // recomputed here and do not enter scoring, gates, or risk maths.
+                pivots: ind.pivots || null
             },
             explanation: buildExplanation(finalQual, entry, stop, stops, targets, trend, riskReward)
         });

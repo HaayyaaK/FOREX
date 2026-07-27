@@ -1912,7 +1912,16 @@
         function wireWorkspaceSwitch() {
             if (!wsToggle) return;
             wsToggle.addEventListener('click', function () {
-                setWorkspace(appEl.getAttribute('data-workspace') === 'charts' ? 'keeneye' : 'charts');
+                var goingTo = appEl.getAttribute('data-workspace') === 'charts' ? 'keeneye' : 'charts';
+                setWorkspace(goingTo);
+                // Ticker-bar stability: the tape is a TradingView iframe living inside
+                // the Charts panel. While that panel is display:none (in Keen Eye) the
+                // embed can blank or freeze — and unlike the advanced chart, a plain
+                // resize nudge does not always revive the tape. Re-mount it on every
+                // return to Charts so it is always freshly sized and painted. The mount
+                // is idempotent (it clears any prior render first), so this cannot stack
+                // scripts; retries reset so the watchdog stays available.
+                if (goingTo === 'charts') { tickerRetries = 0; mountTickerTape(); }
             });
         }
 

@@ -635,7 +635,9 @@
         // "reference only" label says so directly: this never feeds the R:R,
         // the gates, or any other calculation on the page.
         if (ctx && ctx.tvSymbol) {
-            var quoteWrap = h('div', { class: 'qtw-live-quote-wrap' });
+            // `keeneye-live-price` is a stable, descriptive hook for CSS/theming
+            // of the Live Price block, alongside the structural qtw-* classes.
+            var quoteWrap = h('div', { class: 'qtw-live-quote-wrap keeneye-live-price' });
             quoteWrap.appendChild(h('div', { class: 'qtw-live-quote-label' }, [
                 h('span', { class: 'qtw-live-dot', 'aria-hidden': 'true' }),
                 h('span', { text: 'Live Price' }),
@@ -699,6 +701,22 @@
                     cf.appendChild(chip(price(c.price) + ' · ' + c.kind, 'ai', { title: c.evidence[0] }));
                 });
                 lv.appendChild(cf);
+            }
+            // Classic floor-trader pivots (display-only passthrough from the
+            // indicator engine): pivot with three resistance and three support
+            // bands, coloured like S/R (resistance bear, support bull).
+            if (t.levels.pivots) {
+                var pv = t.levels.pivots;
+                var pvCol = h('div', { class: 'qtw-level-col' });
+                pvCol.appendChild(h('h4', { text: 'Pivot Points (classic)' }));
+                if (isFinite(pv.pivot)) pvCol.appendChild(chip('P ' + price(pv.pivot), 'ai'));
+                [['R1', pv.r1], ['R2', pv.r2], ['R3', pv.r3]].forEach(function (p) {
+                    if (isFinite(p[1])) pvCol.appendChild(chip(p[0] + ' ' + price(p[1]), 'bear', { outline: true }));
+                });
+                [['S1', pv.s1], ['S2', pv.s2], ['S3', pv.s3]].forEach(function (p) {
+                    if (isFinite(p[1])) pvCol.appendChild(chip(p[0] + ' ' + price(p[1]), 'bull', { outline: true }));
+                });
+                lv.appendChild(pvCol);
             }
             s._body.appendChild(lv);
         }
