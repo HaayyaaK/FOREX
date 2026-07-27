@@ -246,7 +246,36 @@
            The trio therefore renders as 3 controls in Keen Eye and 2 in Charts;
            the flex container handles either count without leaving a gap. */
         .interval-field { display: inline-flex; align-items: center; gap: var(--sp-3); min-width: 0; }
-        .app[data-workspace="charts"] .interval-field { display: none; }
+
+        /* ---- Workspace-specific control visibility ----
+           Charts is chart-centric: Symbol · Interval · Reload · Analyze — the
+           Profile picker and the Trader/Analyst toggle (both analysis concerns)
+           are hidden. Keen Eye is analysis-centric: it drops the chart Reload and
+           surfaces the Profile pills + the Trader/Analyst toggle. Interval now
+           shows in BOTH (it sets the analysis timeframe the engine uses). */
+        .app[data-workspace="charts"]  .profile-field   { display: none; }
+        .app[data-workspace="charts"]  .qtw-mode-toggle { display: none; }
+        .app[data-workspace="keeneye"] #reloadBtn       { display: none; }
+
+        /* Profile pill selector (mirrors the hidden #profileSelect). */
+        .profile-field { display: inline-flex; align-items: center; gap: var(--sp-3); min-width: 0; }
+        .visually-hidden-select { display: none; }
+        .profile-pills {
+            display: flex; gap: var(--sp-2); min-width: 0;
+            overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;
+        }
+        .profile-pills::-webkit-scrollbar { display: none; }
+        .profile-pill {
+            flex: 0 0 auto; height: var(--control-h);
+            padding: 0 var(--sp-3); border-radius: 999px;
+            background: transparent; border: var(--hairline) solid transparent;
+            color: var(--c-text-dim); font-size: var(--fs-xs); font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.4px; cursor: pointer;
+            font-family: inherit; white-space: nowrap; transition: background .15s, color .15s;
+        }
+        .profile-pill:hover { color: var(--c-text); }
+        .profile-pill.active { background: var(--c-brand-1); color: #05111b; }
+        .profile-pill:focus-visible { outline: 2px solid var(--c-brand-1); outline-offset: 1px; }
 
         .controls label {
             font-size: var(--fs-xs);
@@ -724,13 +753,7 @@
            HERO
            ===================================================== */
         .qtw-hero {
-            display: grid;
-            /* minmax(0, …) floors: an `fr` track refuses to shrink below its
-               content's min-content width by default, which is how long symbol
-               labels used to push the hero wider than its container. */
-            grid-template-columns: minmax(0, 1.1fr) auto minmax(0, 1.4fr);
-            align-items: center;
-            gap: var(--sp-5);
+            display: flex; flex-direction: column; gap: var(--sp-4);
             padding: var(--sp-5);
             border-radius: var(--qtw-card-radius);
             background: linear-gradient(135deg, var(--c-surface-2), var(--c-surface-3));
@@ -751,7 +774,14 @@
         .qtw-hero.qtw-int-weak   { opacity: 0.92; }
         .qtw-hero.qtw-int-strong .qtw-hero-icon { filter: drop-shadow(0 0 10px currentColor); }
 
-        .qtw-hero-signal { display: flex; align-items: center; gap: var(--sp-4); z-index: 1; min-width: 0; }
+        /* Top band: confidence ring (left) + signal identity (right). Stays a
+           2-column split at every width (mobile included) per the new design. */
+        .qtw-hero-top {
+            display: grid; grid-template-columns: auto minmax(0, 1fr);
+            align-items: center; gap: var(--sp-5); z-index: 1;
+        }
+        .qtw-hero-signal { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+        .qtw-hero-labelrow { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; min-width: 0; }
         .qtw-hero-icon {
             font-size: clamp(1.8rem, 1.4rem + 1vw, 2.6rem); line-height: 1; flex: 0 0 auto;
             color: inherit;
@@ -764,13 +794,21 @@
         .qtw-hero.qtw-tone-neutral .qtw-hero-label { color: var(--qtw-neutral); }
         .qtw-hero.qtw-tone-info .qtw-hero-icon,
         .qtw-hero.qtw-tone-info .qtw-hero-label { color: var(--qtw-ai); }
-        .qtw-hero-labelwrap { min-width: 0; }
         .qtw-hero-label {
-            margin: 0; font-size: clamp(1.3rem, 1rem + 1.4vw, 2.1rem); font-weight: 800; letter-spacing: -0.02em;
-            line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            margin: 0; font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.4rem); font-weight: 800; letter-spacing: -0.02em;
+            line-height: 1.05; min-width: 0;
+            /* Wrap longer labels (Weak Sell, No Trade, Waiting…) rather than
+               truncating with an ellipsis. */
+            overflow-wrap: break-word;
         }
-        .qtw-hero-sub { display: flex; gap: var(--sp-2); margin-top: var(--sp-2); flex-wrap: wrap; }
-        .qtw-hero-trend { margin-top: var(--sp-2); font-size: var(--fs-sm); font-weight: 600; }
+        .qtw-hero-trend { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-md); font-weight: 600; }
+        .qtw-hero-trend i { font-size: 0.9em; opacity: 0.9; }
+        .qtw-hero-tf {
+            display: flex; align-items: center; gap: var(--sp-2);
+            font-size: clamp(1.1rem, 0.9rem + 0.8vw, 1.5rem); font-weight: 800; color: var(--c-text-strong);
+        }
+        .qtw-hero-tf i { color: var(--c-brand-1); font-size: 0.85em; }
+        .qtw-hero-chips { display: flex; gap: var(--sp-2); flex-wrap: wrap; z-index: 1; }
 
         /* Live TradingView quote — sits in Trade Setup, directly under the Key
            Levels ladder, so the live number reads against Entry/Stop/Targets
@@ -1314,8 +1352,8 @@
            RESPONSIVE — cards stack, nothing overflows
            ===================================================== */
         @media (max-width: 1100px) {
-            .qtw-hero { grid-template-columns: 1fr; text-align: center; }
-            .qtw-hero-signal { flex-direction: column; }
+            /* Hero is now a vertical stack (top band · chips · facts · ladder);
+               the top band keeps its donut|signal split at all widths. */
             .qtw-hero-facts { grid-template-columns: repeat(2, 1fr); width: 100%; }
         }
         /* The old `max-width: 860px` block that flipped .qtw-grid to a single
@@ -1332,19 +1370,37 @@
         @media (max-width: 620px) {
             .header { justify-content: center; }
             .header .status { margin-left: 0; }
+            .controls { gap: var(--sp-2); }
             .controls label { font-size: var(--fs-2xs); }
 
-            /* Keep the trio on ONE row. The old rule here was
-               `.symbol-select { flex: 1 1 100% }`, which forced Symbol onto a
-               line of its own and was the direct cause of the broken row. */
-            .controls-primary { flex: 1 1 100%; }
-            .controls-primary .symbol-select { flex: 1 1 auto; min-width: 0; }
-            .controls-primary .interval-field { flex: 0 1 auto; }
+            /* Row 1 = Symbol (takes the slack) · Interval · [Reload | Trader/Analyst]
+               · Analyze — all four on ONE row (matches charts_new / keen_new).
+               Symbol shrinks from a 0 basis (its ticker truncates) so the fixed
+               end group always fits beside it instead of wrapping. margin-left is
+               dropped here so the auto-margin can't push the end group to a new
+               line on a tight width. */
+            /* basis 0 (not auto): so the group's hypothetical size is small and the
+               fixed end group shares row 1 instead of being pushed to a new line.
+               (auto would resolve to the symbol's max-content and overflow the row.) */
+            .controls-primary { flex: 1 1 0; min-width: 0; gap: var(--sp-2); }
+            .controls-primary .symbol-select { flex: 1 1 0; min-width: 64px; }
+            .controls-primary .interval-field { flex: 0 0 auto; }
+            .controls-end { gap: var(--sp-2); margin-left: 0; flex: 0 0 auto; }
+            /* Compact the Trader/Analyst toggle so the row-1 quartet fits ~360px. */
+            .qtw-mode-toggle label { padding: 0 var(--sp-2); font-size: var(--fs-2xs); }
+            #analyzeBtn { padding: 0 var(--sp-3); }
+
+            /* Profile pills drop to their OWN full-width row beneath row 1
+               (Keen Eye only — hidden in Charts by the workspace rule). `order`
+               places them after the primary + end groups. */
+            .profile-field { flex: 1 1 100%; order: 10; }
+            .profile-pills { flex: 1 1 auto; }
 
             /* Labels: removed from view, kept in the accessibility tree.
                display:none would break the aria-labelledby references on the
-               symbol trigger and its listbox. */
-            .controls-primary label {
+               symbol trigger/listbox and the profile radiogroup. */
+            .controls-primary label,
+            .profile-field > label {
                 position: absolute;
                 width: 1px; height: 1px;
                 margin: -1px; padding: 0; border: 0;
@@ -1438,9 +1494,14 @@
             </button>
             </div><!-- /.controls-primary -->
 
-            <label for="profileSelect">Profile:</label>
-            <div class="select-wrap">
-                <select id="profileSelect">
+            <!-- Profile: a horizontal PILL selector (surfaced in Keen Eye only).
+                 The native <select> stays in the DOM as the single source of truth
+                 for persistence and Analyze; #profilePills mirrors it, so all the
+                 existing wiring (savePref, analyze) keeps working unchanged. -->
+            <div class="profile-field">
+                <label for="profileSelect" id="profileLabel">Profile:</label>
+                <div class="profile-pills" id="profilePills" role="radiogroup" aria-labelledby="profileLabel"></div>
+                <select id="profileSelect" class="visually-hidden-select" aria-hidden="true" tabindex="-1">
                     <option value="conservative">Conservative</option>
                     <option value="balanced" selected>Balanced</option>
                     <option value="aggressive">Aggressive</option>
@@ -2177,6 +2238,49 @@
         }
 
         // ---------------------------------------------------------------
+        // Profile pill selector — a horizontal, touch-friendly mirror of the
+        // (visually hidden) #profileSelect. The select stays authoritative for
+        // persistence + Analyze; clicking a pill just drives it. Short labels are
+        // derived from the option text (the part after an em-dash, else the whole).
+        // ---------------------------------------------------------------
+        var profileSelectEl = document.getElementById('profileSelect');
+        var profilePillsEl = document.getElementById('profilePills');
+        function syncProfilePills() {
+            if (!profilePillsEl) return;
+            var val = profileSelectEl.value;
+            Array.prototype.forEach.call(profilePillsEl.children, function (b) {
+                var on = b.dataset.value === val;
+                b.classList.toggle('active', on);
+                b.setAttribute('aria-checked', String(on));
+                b.tabIndex = on ? 0 : -1;
+            });
+        }
+        function buildProfilePills() {
+            if (!profilePillsEl || !profileSelectEl) return;
+            profilePillsEl.innerHTML = '';
+            Array.prototype.forEach.call(profileSelectEl.options, function (opt) {
+                var pill = document.createElement('button');
+                pill.type = 'button';
+                pill.className = 'profile-pill';
+                pill.setAttribute('role', 'radio');
+                pill.dataset.value = opt.value;
+                pill.textContent = opt.textContent.split('—').pop().trim();
+                pill.title = opt.textContent;
+                pill.addEventListener('click', function () {
+                    if (profileSelectEl.value === opt.value) return;
+                    profileSelectEl.value = opt.value;
+                    profileSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    syncProfilePills();
+                });
+                profilePillsEl.appendChild(pill);
+            });
+            // Keep pills in step when the select changes from anywhere else
+            // (persistence restore, programmatic set).
+            profileSelectEl.addEventListener('change', syncProfilePills);
+            syncProfilePills();
+        }
+
+        // ---------------------------------------------------------------
         // Init
         // ---------------------------------------------------------------
         // Read the persistence gate FIRST, so restorePrefs() and every later
@@ -2192,6 +2296,7 @@
         wireWorkspaceSwitch();
         wireSaveProfile();
         wirePrefPersistence();
+        buildProfilePills();
         setConn('loading', 'Checking analysis proxy…');
         probeConnection();
         // Keep the indicator live — re-check the proxy every 60s.

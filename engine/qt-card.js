@@ -403,42 +403,64 @@
     /* ================================================================
      * 1. HERO
      * ================================================================ */
+    // Friendly timeframe label (M1/M5/M15/M30/H1/H4/D1) from the engine's raw
+    // interval code — display only.
+    function tfLabel(tf) {
+        var map = { '1': 'M1', '5': 'M5', '15': 'M15', '30': 'M30',
+                    '60': 'H1', '240': 'H4', 'D': 'D1' };
+        return map[String(tf)] || String(tf || '—');
+    }
+
     function buildHero(rec, ctx) {
         var t = toneForCode(rec.recommendation.code);
         var hero = h('section', { class: 'qtw-hero qtw-tone-' + t.tone + ' qtw-int-' + t.intensity });
-
-        var left = h('div', { class: 'qtw-hero-signal' });
-        left.appendChild(h('div', { class: 'qtw-hero-icon', 'aria-hidden': 'true', text:
-            t.tone === 'bull' ? '▲' : t.tone === 'bear' ? '▼' : t.tone === 'neutral' ? '●' : '■' }));
-        var labelWrap = h('div', { class: 'qtw-hero-labelwrap' });
-        labelWrap.appendChild(h('h2', { class: 'qtw-hero-label', text: rec.recommendation.label }));
-        labelWrap.appendChild(h('div', { class: 'qtw-hero-sub' }, [
-            chip(rec.profile.name, 'ai', { outline: true }),
-            rec.recommendation.band ? chip(rec.recommendation.band.replace(/_/g, ' '), t.tone, { outline: true }) : null
-        ]));
-        // Trend line: direction + how long the trend has held (rec.trend.barsInState,
-        // an existing engine field) + the analysis timeframe. Nothing computed here.
+        var arrow = t.tone === 'bull' ? '▲' : t.tone === 'bear' ? '▼' : t.tone === 'neutral' ? '●' : '■';
         var trTone = rec.trend.direction === 'bullish' ? 'bull'
             : rec.trend.direction === 'bearish' ? 'bear' : 'neutral';
         var trBars = rec.trend.barsInState;
-        var trendText = titleCase(rec.trend.direction)
-            + (isFinite(trBars) ? ' · active ' + trBars + ' candle' + (trBars === 1 ? '' : 's') : '')
-            + (rec.timeframe ? ' · ' + rec.timeframe : '');
-        labelWrap.appendChild(h('div', { class: 'qtw-hero-trend qtw-tone-' + trTone, text: trendText }));
-        left.appendChild(labelWrap);
-        hero.appendChild(left);
 
-        var mid = h('div', { class: 'qtw-hero-ring' });
-        mid.appendChild(ring(rec.confidence / 100, {
+        // --- Top band: confidence ring (left) + signal identity (right) ---
+        var top = h('div', { class: 'qtw-hero-top' });
+
+        var ringWrap = h('div', { class: 'qtw-hero-ring' });
+        ringWrap.appendChild(ring(rec.confidence / 100, {
             size: 128, stroke: 11, tone: t.tone === 'info' || t.tone === 'neutral' ? 'ai' : t.tone,
             centerText: Math.round(rec.confidence) + '%', centerSub: 'Confidence', label: 'Confidence'
         }));
+        top.appendChild(ringWrap);
+
+        var signal = h('div', { class: 'qtw-hero-signal' });
+        signal.appendChild(h('div', { class: 'qtw-hero-labelrow' }, [
+            h('h2', { class: 'qtw-hero-label', text: rec.recommendation.label }),
+            h('span', { class: 'qtw-hero-icon', 'aria-hidden': 'true', text: arrow })
+        ]));
+        // Trend line: chart icon + direction + how long it has held (existing
+        // rec.trend.barsInState). Nothing computed here.
+        signal.appendChild(h('div', { class: 'qtw-hero-trend qtw-tone-' + trTone }, [
+            h('i', { class: 'fa-solid fa-chart-line', 'aria-hidden': 'true' }),
+            h('span', { text: titleCase(rec.trend.direction) +
+                (isFinite(trBars) ? ' · Active ' + trBars + ' Candle' + (trBars === 1 ? '' : 's') : '') })
+        ]));
+        // Timeframe line: clock + friendly label (H1, …).
+        signal.appendChild(h('div', { class: 'qtw-hero-tf' }, [
+            h('i', { class: 'fa-regular fa-clock', 'aria-hidden': 'true' }),
+            h('span', { text: tfLabel(rec.timeframe) })
+        ]));
+        top.appendChild(signal);
+        hero.appendChild(top);
+
+        // --- Chips row: MTF adjustment, strategy profile, recommendation band ---
+        var chips = h('div', { class: 'qtw-hero-chips' });
         if (rec.metrics.mtfConfidenceAdjustment) {
-            mid.appendChild(chip(
+            chips.appendChild(chip(
                 (rec.metrics.mtfConfidenceAdjustment > 0 ? '+' : '') + rec.metrics.mtfConfidenceAdjustment +
                 ' pts (MTF)', rec.metrics.mtfConfidenceAdjustment > 0 ? 'bull' : 'bear', { outline: true }));
         }
-        hero.appendChild(mid);
+        chips.appendChild(chip(rec.profile.name, 'ai', { outline: true }));
+        if (rec.recommendation.band) {
+            chips.appendChild(chip(rec.recommendation.band.replace(/_/g, ' '), t.tone, { outline: true }));
+        }
+        hero.appendChild(chips);
 
         var facts = h('div', { class: 'qtw-hero-facts' });
         function fact(label, value, tone2) {

@@ -1200,9 +1200,15 @@ T.test('hero shows trend direction, duration in candles, and timeframe (all real
     var tl = host().querySelector('.qtw-hero-trend');
     T.ok(!!tl, 'hero trend line present');
     T.ok(tl.textContent.indexOf(titleCaseLike(rec.trend.direction)) !== -1, 'shows direction');
-    T.ok(!isFinite(rec.trend.barsInState) || tl.textContent.indexOf(rec.trend.barsInState + ' candle') !== -1,
+    // Duration lives in the trend line ("… Active N Candle(s)"); case-insensitive
+    // since the redesign title-cases the word.
+    T.ok(!isFinite(rec.trend.barsInState) ||
+         tl.textContent.toLowerCase().indexOf(rec.trend.barsInState + ' candle') !== -1,
          'shows trend length from rec.trend.barsInState (=' + rec.trend.barsInState + ')');
-    T.ok(tl.textContent.indexOf(rec.timeframe) !== -1, 'shows the analysis timeframe');
+    // The timeframe moved to its own line as a friendly label (H1, …), derived
+    // deterministically from rec.timeframe.
+    var tf = host().querySelector('.qtw-hero-tf');
+    T.ok(!!tf && tf.textContent.trim().length > 0, 'shows the analysis timeframe (friendly label)');
 });
 
 // The ladder's first cell is "Ref. Close", never "Current": it is the last

@@ -133,6 +133,15 @@
         .icon-btn:hover { background: var(--c-elevated); border-color: var(--c-border-hover); }
         .icon-btn i { color: var(--c-brand-1); }
 
+        /* Back-to-Dashboard is a primary action — styled like .run-btn (gradient,
+           white text, bold) so it reads as the page's main navigation control. */
+        #dashLink {
+            background: var(--grad-action); border: none; color: #fff; font-weight: 600;
+            padding: 0 var(--sp-4); box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+        }
+        #dashLink:hover { background: var(--grad-action); border: none; filter: brightness(1.1); }
+        #dashLink i { color: #fff; }
+
         /* ---------------- Layout ---------------- */
         .wrap { padding: var(--sp-4) var(--sp-5); max-width: 1500px; margin: 0 auto; }
 
@@ -166,7 +175,7 @@
             display: flex; gap: var(--sp-3); align-items: flex-start;
             padding: var(--sp-3) var(--sp-4); border-radius: var(--r-lg);
             background: var(--c-warn-soft); border: var(--hairline) solid rgba(255,176,32,0.35);
-            color: #ffd98a; font-size: var(--fs-xs); line-height: 1.5; margin-bottom: var(--sp-4);
+            color: #ffd98a; font-size: var(--fs-xs); line-height: 1.5; margin: var(--sp-4) 0;
         }
         .banner i { color: var(--c-warn); margin-top: 2px; flex: none; }
         .banner strong { color: var(--c-warn); }
@@ -297,19 +306,6 @@
             </button>
         </div>
 
-        <!-- Permanent honesty banner (surfaces the platform's core caveat). -->
-        <div class="banner" role="note">
-            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-            <span>
-                <strong>Educational validation only — not financial advice, no profitability claim.</strong>
-                Results are computed by the same deterministic engine the dashboard uses, replayed
-                bar-by-bar with no future-data leakage. History depth is limited by the data provider,
-                so trade counts are typically well below the 1,000+ needed for statistical significance.
-                Read every metric as a <em>stability check on available data</em>, not a validated edge.
-                All strategy weights remain calibration assumptions.
-            </span>
-        </div>
-
         <!-- States -->
         <div class="state" id="emptyState">
             <i class="fa-solid fa-vials" aria-hidden="true"></i>
@@ -381,6 +377,19 @@
                 </div>
                 <div class="tbl-scroll"><table class="data" id="tradesTable"></table></div>
             </div>
+        </div>
+        <!-- Permanent honesty banner — kept at the end so results lead the page,
+             with the caveat as the closing note. -->
+        <div class="banner" role="note">
+            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+            <span>
+                <strong>Educational validation only — not financial advice, no profitability claim.</strong>
+                Results are computed by the same deterministic engine the dashboard uses, replayed
+                bar-by-bar with no future-data leakage. History depth is limited by the data provider,
+                so trade counts are typically well below the 1,000+ needed for statistical significance.
+                Read every metric as a <em>stability check on available data</em>, not a validated edge.
+                All strategy weights remain calibration assumptions.
+            </span>
         </div>
     </div>
 
