@@ -100,7 +100,10 @@ T.test('the Live Price block carries a descriptive class', function () {
 });
 
 T.test('the ticker tape is re-mounted on return to the Charts workspace', function () {
-    var wire = DASHBOARD_HTML.match(/function wireWorkspaceSwitch\(\)[\s\S]*?\n {8}\}/)[0];
+    // Match the whole function body up to its closing brace. Inner blocks close
+    // at 8+ spaces; the function itself closes at exactly 6, so this reaches the
+    // real end (past the goingTo/re-mount logic) regardless of prior nesting.
+    var wire = DASHBOARD_HTML.match(/function wireWorkspaceSwitch\(\)[\s\S]*?\n {6}\}/)[0];
     T.ok(/goingTo === 'charts'/.test(wire), 'detects a switch back to Charts');
     T.ok(/mountTickerTape\(\)/.test(wire), 're-mounts the ticker tape on that switch');
     T.ok(/tickerRetries = 0/.test(wire), 'resets the watchdog retry counter so it stays available');
@@ -111,7 +114,10 @@ T.suite('Phase 11 — Navigation: brand-home & same-page in-app links');
 T.test('the Keen Eye brand is an accessible control that jumps to Charts', function () {
     T.ok(/id="brandHome"[^>]*role="button"/.test(DASHBOARD_HTML), 'brand h1 exposes role="button"');
     T.ok(/id="brandHome"[^>]*tabindex="0"/.test(DASHBOARD_HTML), 'brand is keyboard-focusable');
-    var wire = DASHBOARD_HTML.match(/function wireWorkspaceSwitch\(\)[\s\S]*?\n {8}\}/)[0];
+    // Match the whole function body up to its closing brace. Inner blocks close
+    // at 8+ spaces; the function itself closes at exactly 6, so this reaches the
+    // real end (past the goingTo/re-mount logic) regardless of prior nesting.
+    var wire = DASHBOARD_HTML.match(/function wireWorkspaceSwitch\(\)[\s\S]*?\n {6}\}/)[0];
     T.ok(/getElementById\('brandHome'\)/.test(wire), 'brand is wired up');
     T.ok(/setWorkspace\('charts'\)/.test(wire), 'brand click routes to the Charts workspace');
     T.ok(/Enter'.*' '|Enter' \|\| e\.key === ' '/.test(wire), 'brand responds to Enter/Space keys');

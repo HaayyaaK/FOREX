@@ -797,7 +797,7 @@ T.test('the toggle reflects the persisted mode on load and forwards changes with
 });
 
 T.test('the analyst-only visibility rule is a pure CSS switch, not a script rebuild', function () {
-    T.ok(/\.qtw\[data-mode="trader"\]\s*\.qtw-analyst-only\s*\{\s*display:\s*none;?\s*\}/.test(DASHBOARD_HTML),
+    T.ok(/\.qtw\[data-mode=["']trader["']\]\s*\.qtw-analyst-only\s*\{\s*display:\s*none;?\s*\}/.test(DASHBOARD_HTML),
          'CSS-only rule hides analyst-only content in trader mode');
 });
 
@@ -891,7 +891,7 @@ T.test('card shells are never given a flex or grid display box', function () {
 });
 
 T.test('the mirror trader-only visibility rule exists for Analyst Mode', function () {
-    T.ok(/\.qtw\[data-mode="analyst"\]\s*\.qtw-trader-only\s*\{\s*display:\s*none;?\s*\}/.test(DASHBOARD_HTML),
+    T.ok(/\.qtw\[data-mode=["']analyst["']\]\s*\.qtw-trader-only\s*\{\s*display:\s*none;?\s*\}/.test(DASHBOARD_HTML),
          'CSS-only rule hides trader-only summaries in analyst mode');
 });
 
@@ -1037,17 +1037,17 @@ T.test('the app shell pins itself to the viewport (no page scroll)', function ()
 T.test('both workspace panels exist and are toggled by a single data-workspace attribute', function () {
     T.ok(/id="app"[^>]*data-workspace="charts"/.test(DASHBOARD_HTML), 'default workspace is Charts');
     T.ok(/id="wsPanelCharts"/.test(DASHBOARD_HTML), 'Charts panel present');
-    T.ok(/id="wsPanelKeenEye"/.test(DASHBOARD_HTML), 'Keen Eye panel present');
+    T.ok(/id="wsPanelKEEN"/.test(DASHBOARD_HTML), 'Keen Eye panel present');
     T.ok(/\.workspace\s*\{[^}]*display:\s*none/.test(DASHBOARD_HTML), 'workspaces hidden by default, shown when active');
-    T.ok(/\.app\[data-workspace="charts"\]\s*#wsPanelCharts\s*\{\s*display:\s*flex/.test(DASHBOARD_HTML),
+    T.ok(/\.app\[data-workspace=["']charts["']\]\s*#wsPanelCharts\s*\{\s*display:\s*flex/.test(DASHBOARD_HTML),
          'Charts panel shown only when data-workspace=charts');
-    T.ok(/\.app\[data-workspace="keeneye"\]\s*#wsPanelKeenEye\s*\{\s*display:\s*flex/.test(DASHBOARD_HTML),
-         'Keen Eye panel shown only when data-workspace=keeneye');
+    T.ok(/\.app\[data-workspace=["']KEEN["']\]\s*#wsPanelKEEN\s*\{\s*display:\s*flex/.test(DASHBOARD_HTML),
+         'KEEN panel shown only when data-workspace=KEEN');
 });
 
 T.test('the chart lives in Charts, the analysis card lives in Keen Eye', function () {
     var charts = DASHBOARD_HTML.indexOf('id="wsPanelCharts"');
-    var keeneye = DASHBOARD_HTML.indexOf('id="wsPanelKeenEye"');
+    var keeneye = DASHBOARD_HTML.indexOf('id="wsPanelKEEN"');
     var chartHost = DASHBOARD_HTML.indexOf('id="chartHost"');
     var analysisCard = DASHBOARD_HTML.indexOf('id="analysisCard"');
     T.ok(charts < chartHost && chartHost < keeneye, 'chartHost is inside the Charts panel');
@@ -1092,7 +1092,7 @@ T.test('the Charts workspace makes the chart the dominant component (sidebar rem
     T.ok(DASHBOARD_HTML.indexOf('charts-side') === -1, 'the market sidebar was removed to give the chart the space');
     T.ok(DASHBOARD_HTML.indexOf('id="watchlist"') === -1, 'the watchlist panel is gone (the symbol selector serves that role)');
     T.ok(/\.chart-panel\s*\{[^}]*flex:\s*1 1 auto/.test(DASHBOARD_HTML), 'the chart panel flex-fills the charts column');
-    T.ok(/#wsPanelCharts\s*#wsPanelCharts|\.app\[data-workspace="charts"\]\s*#wsPanelCharts\s*\{[^}]*flex-direction:\s*column/.test(DASHBOARD_HTML),
+    T.ok(/#wsPanelCharts\s*#wsPanelCharts|\.app\[data-workspace=["']charts["']\]\s*#wsPanelCharts\s*\{[^}]*flex-direction:\s*column/.test(DASHBOARD_HTML),
          'the charts workspace is a flex column: ticker over a dominant chart');
 });
 
@@ -1110,7 +1110,7 @@ T.test('workspace switching is presentation-only — no engine calls, persisted 
 
 T.test('clicking Analyze surfaces Keen Eye and reflects real connection state only', function () {
     var inline = DASHBOARD_HTML.match(/<script>\s*'use strict';[\s\S]*?<\/script>/)[0];
-    T.ok(/setWorkspace\('keeneye'\)/.test(inline), 'Analyze switches to Keen Eye so results are visible');
+    T.ok(/setWorkspace\(["']KEEN["']\)/.test(inline), 'Analyze switches to Keen Eye so results are visible');
     T.ok(/setConn\('loading'/.test(inline) && /setConn\('ok'/.test(inline) && /setConn\('error'/.test(inline),
          'connection indicator reflects loading/ok/error — all derived from the real run() outcome');
 });
@@ -1171,7 +1171,7 @@ T.test('Keen Eye shows a welcoming empty state before any analysis', function ()
     T.ok(/Analyze/.test(cardChunk), 'the empty state tells the user to press Analyze');
     // It must live in Keen Eye, and the renderer clears it on first analysis
     // (proven functionally by the existing re-render test that replaces content).
-    var keeneye = DASHBOARD_HTML.indexOf('id="wsPanelKeenEye"');
+    var keeneye = DASHBOARD_HTML.indexOf('id="wsPanelKEEN"');
     T.ok(keeneye !== -1 && keeneye < cardStart, 'empty state is inside the Keen Eye workspace');
 });
 
@@ -1259,7 +1259,7 @@ T.suite('Phase 8.8 — v1.1-final: header & control refinement');
 
 T.test('the Trader/Analyst toggle sits in the controls and matches the Analyze button styling', function () {
     T.ok(/\.qtw-mode-toggle\s*\{[^}]*height:\s*var\(--control-h\)/.test(DASHBOARD_HTML), 'matches the control height');
-    T.ok(/\.qtw-mode-toggle input\[type="radio"\]:checked \+ label\s*\{[^}]*linear-gradient\(135deg,\s*#00b894/.test(DASHBOARD_HTML),
+    T.ok(/\.qtw-mode-toggle input\[type=["']radio["']\]:checked \+ label\s*\{[^}]*linear-gradient\(135deg,\s*#00b894/.test(DASHBOARD_HTML),
          'active segment uses the same green gradient as Analyze');
     T.ok(/\.qtw-mode-toggle\s*\{[^}]*flex:\s*0 0 auto/.test(DASHBOARD_HTML), 'stays compact, does not stretch');
 });

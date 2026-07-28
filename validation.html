@@ -258,12 +258,12 @@
         /* Unified footer — shared design across dashboard / calc / validation / disclaimer. */
         .app-footer {
             flex: 0 0 auto;
-            display: flex; align-items: center; justify-content: space-between;
-            gap: var(--sp-3); flex-wrap: wrap;
-            padding: var(--sp-2) var(--sp-4);
-            padding-bottom: calc(var(--sp-1) + env(safe-area-inset-bottom, 0px));
-            font-size: var(--fs-2xs); color: var(--c-text-faint);
-            background: linear-gradient(135deg, var(--c-surface-2) 0%, #16213e 100%);
+            display: flex; align-items: center; justify-content: center;
+            gap: var(--sp-3); flex-direction: row-reverse;
+            padding: var(--sp-2);
+            padding-bottom: calc(var(--sp-2) + env(safe-area-inset-bottom, 0px));
+            font-size: var(--fs-xs); color: var(--c-text-faint);
+            background: linear-gradient(280deg, var(--c-surface-2) 0%, #16213e 100%);
             border-top: var(--hairline) solid var(--c-border-soft);
         }
         .app-footer a {
@@ -407,10 +407,9 @@
     </div>
 
     <footer class="app-footer">
-        <span>&copy; 2026 hayyaak.com &middot; All rights reserved.</span>
         <span class="foot-links">
-            <a href="disclaimer.html"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Disclaimer &mdash; not financial advice</a>
-            <a href="https://hayyaak.com/" target="_blank" rel="noopener"><i class="fa-solid fa-globe" aria-hidden="true"></i> hayyaak.com</a>
+            <a href="disclaimer.html"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Disclaimer</a>
+            <a href="https://hayyaak.com/" target="_blank" rel="noopener"><i class="fa-solid fa-globe" aria-hidden="true"></i> 2025 &copy; hayyaak.com</a>
         </span>
     </footer>
 

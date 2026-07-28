@@ -103,11 +103,11 @@ p.body{font-size:var(--fs-sm);color:var(--c-text-muted);margin-block-end:var(--s
 a.inline{color:var(--c-brand-1);text-decoration:none;border-block-end:1px dotted rgba(34,211,238,0.4)}
 a.inline:hover{border-block-end-style:solid}
 /* Unified footer — shared design across dashboard / calc / validation / disclaimer. */
-.app-footer{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:var(--sp-3);flex-wrap:wrap;
-  margin-block-start:var(--sp-6);padding:var(--sp-2) var(--sp-4);
-  padding-bottom:calc(var(--sp-1) + env(safe-area-inset-bottom,0px));
-  font-size:var(--fs-2xs);color:var(--c-text-faint);
-  background:linear-gradient(135deg,var(--c-surface-2) 0%,#16213e 100%);
+.app-footer{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:var(--sp-3);flex-direction:row-reverse;
+  margin-block-start:var(--sp-6);padding:var(--sp-2);
+  padding-bottom:calc(var(--sp-2) + env(safe-area-inset-bottom,0px));
+  font-size:var(--fs-xs);color:var(--c-text-faint);
+  background:linear-gradient(280deg,var(--c-surface-2) 0%,#16213e 100%);
   border-top:var(--hairline) solid var(--c-border-soft)}
 .app-footer a{display:inline-flex;font-weight:bold;align-items:center;gap:var(--sp-1);
   color:var(--c-text-muted);text-decoration:none;transition:color .2s}
@@ -161,14 +161,12 @@ a.inline:hover{border-block-end-style:solid}
     <p class="body">We may update this Disclaimer at any time; changes take effect upon posting to this page. For any inquiry about this notice or the tool, contact us via <a class="inline" href="https://hayyaak.com">hayyaak.com</a>.</p>
 
     <footer class="app-footer">
-        <span>&copy; <span id="year">2026</span> hayyaak.com &middot; All rights reserved.</span>
         <span class="foot-links">
             <a href="dashboard.html"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Back to Dashboard</a>
-            <a href="https://hayyaak.com/" target="_blank" rel="noopener"><i class="fa-solid fa-globe" aria-hidden="true"></i> hayyaak.com</a>
+            <a href="https://hayyaak.com/" target="_blank" rel="noopener"><i class="fa-solid fa-globe" aria-hidden="true"></i> 2025 &copy; hayyaak.com</a>
         </span>
     </footer>
   </main>
 </div>
-<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 </body>
 </html>
