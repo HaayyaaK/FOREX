@@ -145,9 +145,13 @@
 
         /* ---------------- Layout ---------------- */
         .wrap { max-width: 1500px; margin: 0 auto; padding: var(--sp-4) var(--sp-5); }
+        /* Mobile-first: 1 column on phones (min(100%…) prevents 320px overflow),
+           auto-fitting to more columns as width allows. align-items:stretch makes
+           every card in a row share the tallest height, so results align instead
+           of leaving a ragged, "unmatched" grid. */
         .grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-            gap: var(--sp-4); align-items: start;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+            gap: var(--sp-4); align-items: stretch;
         }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
@@ -286,6 +290,7 @@
         <button class="tab-btn"        data-tab="stocks"  role="tab"><i class="fa-solid fa-chart-line"></i> Stocks</button>
         <button class="tab-btn"        data-tab="futures" role="tab"><i class="fa-solid fa-bolt"></i> Futures</button>
         <button class="tab-btn"        data-tab="options" role="tab"><i class="fa-solid fa-bullseye"></i> Options</button>
+        <button class="tab-btn"        data-tab="advanced" role="tab"><i class="fa-solid fa-gauge-high"></i> Advanced</button>
     </nav>
 
     <main class="wrap">
@@ -500,6 +505,33 @@
                 <p class="note">Cross = Base/USD ÷ Quote/USD. Both rates are quoted as USD per 1 unit of currency.</p>
             </div>
 
+            <!-- Lot Size from Risk -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-bull"><i class="fa-solid fa-calculator"></i></span><h3 class="card-title">Lot Size from Risk</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Account Balance</label><input type="number" id="lr_balance" value="10000"></div>
+                    <div class="field"><label>Risk %</label><input type="number" id="lr_risk" value="1" step="0.1"></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><label>Stop Loss (pips)</label><input type="number" id="lr_slpips" value="20" step="0.1"></div>
+                    <div class="field"><label>Pair</label>
+                        <select id="lr_pair">
+                            <option value="EURUSD">EUR/USD</option><option value="GBPUSD">GBP/USD</option>
+                            <option value="USDJPY">USD/JPY</option><option value="AUDUSD">AUD/USD</option>
+                            <option value="USDCAD">USD/CAD</option><option value="USDCHF">USD/CHF</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field"><label>Acct per Quote rate (1 if acct = quote ccy)</label><input type="number" id="lr_rate" value="1" step="0.0001"></div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Risk Amount</span><span class="res-val mono t-bear-txt" id="lr_riskamt">—</span></div>
+                    <div class="res-row"><span class="res-label">Pip Value / Lot</span><span class="res-val mono" id="lr_pipval">—</span></div>
+                    <div class="res-row primary"><span class="res-label">Lot Size</span><span class="res-val mono t-info-txt" id="lr_lots">—</span></div>
+                    <div class="res-row"><span class="res-label">Units</span><span class="res-val mono" id="lr_units">—</span></div>
+                </div>
+                <p class="note">Lot size = (Balance × Risk %) ÷ (SL pips × pip value per lot). Uses the same pip-size map as the Pip Value card. For USD/JPY set the rate to 1÷price to convert into USD.</p>
+            </div>
+
         </div>
     </section>
 
@@ -600,6 +632,27 @@
                     <div class="res-row"><span class="res-label">Slippage (both sides)</span><span class="res-val mono t-warn-txt" id="fs_slipCost">—</span></div>
                     <div class="res-row primary"><span class="res-label">Total Roundtrip Cost</span><span class="res-val mono t-bear-txt" id="fs_total">—</span></div>
                 </div>
+            </div>
+
+            <!-- Impermanent Loss -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-warn"><i class="fa-solid fa-water"></i></span><h3 class="card-title">Impermanent Loss (LP)</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Token A Entry Price</label><input type="number" id="il_entry" value="2000" step="0.01"></div>
+                    <div class="field"><label>Token A Current Price</label><input type="number" id="il_now" value="3000" step="0.01"></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><label>Pool Weight A %</label><input type="number" id="il_weight" value="50" step="1"></div>
+                    <div class="field"><label>Deposit ($)</label><input type="number" id="il_deposit" value="10000"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row"><span class="res-label">Price Change (A)</span><span class="res-val mono" id="il_change">—</span></div>
+                    <div class="res-row primary"><span class="res-label">Impermanent Loss</span><span class="res-val mono t-bear-txt" id="il_pct">—</span></div>
+                    <div class="res-row"><span class="res-label">Value if Held</span><span class="res-val mono" id="il_held">—</span></div>
+                    <div class="res-row"><span class="res-label">LP Value</span><span class="res-val mono" id="il_lp">—</span></div>
+                    <div class="res-row"><span class="res-label">$ Loss vs Hold</span><span class="res-val mono t-bear-txt" id="il_loss">—</span></div>
+                </div>
+                <p class="note">Constant-product AMM value vs simply holding. Assumes the paired asset is a stablecoin; Weight A is Token A's share of the pool (50 = balanced).</p>
             </div>
 
         </div>
@@ -838,6 +891,56 @@
                     <div class="res-row"><span class="res-label">Breakeven(s)</span><span class="res-val mono" id="sp_be">—</span></div>
                 </div>
                 <svg class="chart-svg" id="sp_chart" viewBox="0 0 300 150" preserveAspectRatio="none" aria-hidden="true"></svg>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ==================== ADVANCED (Risk & Analytics) ==================== -->
+    <section id="tab-advanced" class="tab-content">
+        <div class="grid">
+
+            <!-- Kelly Criterion & Risk of Ruin -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-ai"><i class="fa-solid fa-percent"></i></span><h3 class="card-title">Kelly Criterion &amp; Risk of Ruin</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Win Rate %</label><input type="number" id="kr_win" value="50" step="0.1"></div>
+                    <div class="field"><label>Reward : Risk (R)</label><input type="number" id="kr_rr" value="2" step="0.1"></div>
+                </div>
+                <div class="field-row">
+                    <div class="field"><label>Risk % / Trade</label><input type="number" id="kr_risk" value="2" step="0.1"></div>
+                    <div class="field"><label>Ruin Threshold %</label><input type="number" id="kr_ruin" value="50" step="1"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row primary"><span class="res-label">Optimal Risk (Kelly)</span><span class="res-val mono t-bull-txt" id="kr_kelly">—</span></div>
+                    <div class="res-row"><span class="res-label">Half-Kelly (safer)</span><span class="res-val mono t-info-txt" id="kr_half">—</span></div>
+                    <div class="res-row"><span class="res-label">Expectancy / Trade</span><span class="res-val mono" id="kr_exp">—</span></div>
+                    <div class="res-row"><span class="res-label">Risk of Ruin</span><span class="res-val mono t-bear-txt" id="kr_ror">—</span></div>
+                    <div class="res-row"><span class="res-label">Consecutive Losses to Ruin</span><span class="res-val mono t-warn-txt" id="kr_streak">—</span></div>
+                </div>
+                <p class="note">Kelly = Win% − (Loss% ÷ R). Risk of Ruin is an even-money approximation using your per-trade edge over the ruin threshold — directional guidance, not an exact probability.</p>
+            </div>
+
+            <!-- CAGR & Expectancy -->
+            <div class="card">
+                <div class="card-head"><span class="card-ico t-bull"><i class="fa-solid fa-chart-line"></i></span><h3 class="card-title">CAGR &amp; Expectancy</h3></div>
+                <div class="field-row">
+                    <div class="field"><label>Start Balance</label><input type="number" id="ce_start" value="10000"></div>
+                    <div class="field"><label>End Balance</label><input type="number" id="ce_end" value="25000"></div>
+                </div>
+                <div class="field"><label>Years</label><input type="number" id="ce_years" value="3" step="0.1"></div>
+                <div class="field-row cols-3">
+                    <div class="field"><label>Win Rate %</label><input type="number" id="ce_win" value="55" step="0.1"></div>
+                    <div class="field"><label>Avg Win $</label><input type="number" id="ce_avgwin" value="300" step="0.01"></div>
+                    <div class="field"><label>Avg Loss $</label><input type="number" id="ce_avgloss" value="200" step="0.01"></div>
+                </div>
+                <div class="results">
+                    <div class="res-row primary"><span class="res-label">CAGR (annualized)</span><span class="res-val mono t-bull-txt" id="ce_cagr">—</span></div>
+                    <div class="res-row"><span class="res-label">Total Return</span><span class="res-val mono" id="ce_total">—</span></div>
+                    <div class="res-row"><span class="res-label">Expectancy / Trade</span><span class="res-val mono" id="ce_exp">—</span></div>
+                    <div class="res-row"><span class="res-label">Expectancy (R)</span><span class="res-val mono t-info-txt" id="ce_expr">—</span></div>
+                </div>
+                <p class="note">CAGR = (End ÷ Start)^(1÷Years) − 1. Expectancy = (Win% × Avg Win) − (Loss% × Avg Loss); the R-multiple divides it by the average loss (your risk unit).</p>
             </div>
 
         </div>
@@ -1303,6 +1406,77 @@
         drawLine('sp_chart', payoffCurve((lo + hi) / 2 || S, payoff, lo, hi), S);
     }
 
+    // ================================================================
+    // ADVANCED (Risk & Analytics)
+    // ================================================================
+    function calcKellyRor() {
+        var W = n($('kr_win').value) / 100, R = n($('kr_rr').value);
+        var riskPct = n($('kr_risk').value) / 100, ruin = n($('kr_ruin').value) / 100;
+        var kelly = R > 0 ? (W - (1 - W) / R) : 0;   // optimal fraction of capital
+        var expR = W * R - (1 - W);                  // expectancy in R-multiples
+        $('kr_kelly').textContent = kelly > 0 ? fmt(kelly * 100, 2) + '%' : '0% (no edge)';
+        $('kr_half').textContent = kelly > 0 ? fmt(kelly * 50, 2) + '%' : '—';
+        var ex = $('kr_exp'); ex.textContent = (expR >= 0 ? '+' : '') + fmt(expR, 2) + 'R'; tone(ex, expR >= 0);
+        // Risk of ruin — even-money approximation: ((1-edge)/(1+edge))^units.
+        var ror;
+        if (expR <= 0) ror = 1;
+        else if (riskPct <= 0) ror = 0;
+        else {
+            var edge = Math.min(0.999, expR);
+            var units = ruin / riskPct;              // full-risk losses to ruin
+            ror = Math.pow((1 - edge) / (1 + edge), units);
+        }
+        ror = Math.max(0, Math.min(1, ror));
+        $('kr_ror').textContent = fmt(ror * 100, 2) + '%';
+        // Consecutive losses to ruin under fixed-fractional risk: (1-r)^k = 1-ruin.
+        var streak = (riskPct > 0 && riskPct < 1 && ruin > 0 && ruin < 1)
+            ? Math.floor(Math.log(1 - ruin) / Math.log(1 - riskPct)) : 0;
+        $('kr_streak').textContent = (isFinite(streak) && streak > 0) ? String(streak) : '—';
+    }
+
+    function calcCagrExpectancy() {
+        var start = n($('ce_start').value), end = n($('ce_end').value), years = n($('ce_years').value);
+        var W = n($('ce_win').value) / 100, aw = n($('ce_avgwin').value), al = n($('ce_avgloss').value);
+        var cagr = (start > 0 && years > 0) ? (Math.pow(end / start, 1 / years) - 1) * 100 : 0;
+        var total = start > 0 ? (end / start - 1) * 100 : 0;
+        var expDollar = W * aw - (1 - W) * al;
+        var expR = al > 0 ? expDollar / al : 0;
+        var c = $('ce_cagr'); c.textContent = pct(cagr); tone(c, cagr >= 0);
+        var t = $('ce_total'); t.textContent = pct(total); tone(t, total >= 0);
+        var e = $('ce_exp'); e.textContent = signedMoney(expDollar); tone(e, expDollar >= 0);
+        var er = $('ce_expr'); er.textContent = (expR >= 0 ? '+' : '') + fmt(expR, 2) + 'R'; tone(er, expR >= 0);
+    }
+
+    function calcImpermanentLoss() {
+        var p0 = n($('il_entry').value), p1 = n($('il_now').value);
+        var wA = n($('il_weight').value) / 100, dep = n($('il_deposit').value);
+        if (wA <= 0 || wA >= 1) wA = 0.5;
+        var wB = 1 - wA;
+        var d = p0 > 0 ? p1 / p0 : 1;                // A's price move vs the (stable) pair
+        var lpFactor = Math.pow(d, wA);              // Balancer value multiple (B stable)
+        var holdFactor = wA * d + wB;                // value multiple of simply holding
+        var il = holdFactor > 0 ? (lpFactor / holdFactor - 1) : 0;   // <= 0
+        var held = dep * holdFactor, lp = dep * lpFactor;
+        $('il_change').textContent = pct((d - 1) * 100);
+        $('il_pct').textContent = fmt(il * 100, 2) + '%';
+        $('il_held').textContent = money(held);
+        $('il_lp').textContent = money(lp);
+        $('il_loss').textContent = money(held - lp);
+    }
+
+    function calcLotsFromRisk() {
+        var bal = n($('lr_balance').value), risk = n($('lr_risk').value) / 100;
+        var slPips = n($('lr_slpips').value), pair = $('lr_pair').value, rate = n($('lr_rate').value);
+        var pipSize = PIP_SIZE[pair] || 0.0001;
+        var pipValPerLot = 100000 * pipSize * (rate > 0 ? rate : 1);  // acct ccy / pip / std lot
+        var riskAmt = bal * risk;
+        var lots = (slPips > 0 && pipValPerLot > 0) ? riskAmt / (slPips * pipValPerLot) : 0;
+        $('lr_riskamt').textContent = money(riskAmt);
+        $('lr_pipval').textContent = curSym + fmt(pipValPerLot, 2);
+        $('lr_lots').textContent = fmt(lots, 2);
+        $('lr_units').textContent = fmt(lots * 100000, 0) + ' units';
+    }
+
     // ---- Inline SVG charts ----------------------------------------
     function payoffCurve(center, fn, lo, hi) {
         var minP, maxP;
@@ -1355,7 +1529,8 @@
          calcLiquidation, calcFunding, calcDCA, calcStaking, calcFeeSlippage,
          calcDividendYield, calcShortSelling, calcValuation, calcWashSale,
          calcTickValue, calcContractMultiplier, calcFuturesMargin,
-         calcOptionsPnL, calcBlackScholes, calcGreeksUI, calcStrategyPayoff
+         calcOptionsPnL, calcBlackScholes, calcGreeksUI, calcStrategyPayoff,
+         calcKellyRor, calcCagrExpectancy, calcImpermanentLoss, calcLotsFromRisk
         ].forEach(function (f) { try { f(); } catch (e) { console.warn(f.name, e); } });
     }
 

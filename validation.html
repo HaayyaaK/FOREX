@@ -110,13 +110,11 @@
             font-size: 0.9em; margin-right: 0.4em;
         }
         .header-sub { font-size: var(--fs-2xs); color: var(--c-text-dim); text-transform: uppercase; letter-spacing: 1px; }
-        .header-actions { display: inline-flex; align-items: center; gap: var(--sp-2); margin-left: auto; }
-
-        .status-chip {
+        .header-brand { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; row-gap: 2px; min-width: 0; }
+        .header-meta { display: inline-flex; align-items: center; gap: var(--sp-3); }
+        .status-inline {
             display: inline-flex; align-items: center; gap: var(--sp-2);
-            height: var(--control-h); padding: 0 var(--sp-3);
-            background: var(--c-surface); border: var(--hairline) solid var(--c-border);
-            border-radius: var(--r-md); font-size: var(--fs-xs); color: var(--c-text-faint);
+            font-size: var(--fs-xs); color: var(--c-text-faint); white-space: nowrap;
         }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c-text-dim); flex: none; }
         .status-dot.ok { background: var(--c-bull); box-shadow: 0 0 6px var(--c-bull); }
@@ -138,6 +136,7 @@
         #dashLink {
             background: var(--grad-action); border: none; color: #fff; font-weight: 600;
             padding: 0 var(--sp-4); box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+            margin-left: auto; flex: none;
         }
         #dashLink:hover { background: var(--grad-action); border: none; filter: brightness(1.1); }
         #dashLink i { color: #fff; }
@@ -153,13 +152,25 @@
         }
         .field { display: flex; flex-direction: column; gap: var(--sp-1); min-width: 120px; }
         .field label { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.6px; color: var(--c-text-faint); }
+        .select-wrap { position: relative; display: flex; width: 100%; }
         .field select {
-            height: var(--control-h); padding: 0 var(--sp-3);
+            height: var(--control-h); padding: 0 var(--sp-3); width: 100%;
             background: var(--c-surface-2); color: var(--c-text);
             border: var(--hairline) solid var(--c-border); border-radius: var(--r-md);
-            font-family: inherit; font-size: var(--fs-sm); cursor: pointer; min-width: 120px;
+            font-family: inherit; font-size: var(--fs-sm); cursor: pointer; min-width: 110px;
+            appearance: none; -webkit-appearance: none; -moz-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%238a8ab2' d='M0 0h12L6 8z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right var(--sp-3) center; background-size: 9px;
+            padding-right: calc(var(--sp-3) + 16px);
         }
         .field select:focus-visible { outline: 2px solid var(--c-brand-1); outline-offset: 1px; }
+        /* Symbol picker carries a leading asset glyph (decorative). */
+        .symbol-field { min-width: 150px; }
+        .symbol-field select { padding-left: calc(var(--sp-3) + 22px); }
+        .sym-ico {
+            position: absolute; left: var(--sp-3); top: 50%; transform: translateY(-50%);
+            font-size: 0.95em; color: var(--c-brand-1); pointer-events: none; z-index: 1;
+        }
         .run-btn {
             height: var(--control-h); padding: 0 var(--sp-5);
             background: var(--grad-action); color: #fff; font-weight: 600;
@@ -254,6 +265,26 @@
 
         .hidden { display: none !important; }
 
+        /* ---------------- Mobile (< 740px) ---------------- */
+        @media (max-width: 740px) {
+            .header { padding: var(--sp-3) var(--sp-4); }
+            /* Title on line 1 (with Dashboard); status dot + subtitle drop to line 2. */
+            .header-brand { flex-direction: column; align-items: flex-start; gap: 3px; }
+            .header-meta { gap: var(--sp-2); }
+            #dashLink { align-self: flex-start; }
+            .wrap { padding: var(--sp-4); }
+            /* Collapse the 2-row control block into one compact row. */
+            .controls { flex-wrap: nowrap; align-items: flex-end; gap: var(--sp-2); padding: var(--sp-3); }
+            .field { min-width: 0; flex: 1 1 0; }
+            .symbol-field { flex: 1.5 1 0; }
+            .interval-field { flex: 0.7 1 0; }
+            .field select { min-width: 0; }
+            .field label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            /* Run button becomes an icon-only square. */
+            .run-btn { padding: 0; width: var(--control-h); flex: none; justify-content: center; }
+            .run-btn .run-label { display: none; }
+        }
+
         /* ---------------- Footer ---------------- */
         /* Unified footer — shared design across dashboard / calc / validation / disclaimer. */
         .app-footer {
@@ -278,27 +309,32 @@
 </head>
 <body>
     <header class="header">
-        <h1><i class="fa-solid fa-flask-vial brand-ico" aria-hidden="true"></i>Strategy Validation</h1>
-        <span class="header-sub">Backtest Lab</span>
-        <div class="header-actions">
-            <span class="status-chip" id="statusChip" title="Proxy connection">
-                <span class="status-dot" id="statusDot"></span><span id="statusText">Checking…</span>
-            </span>
-            <a class="icon-btn" id="dashLink" href="dashboard.html"
-               aria-label="Back to Dashboard" title="Back to Dashboard">
-                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Dashboard
-            </a>
+        <div class="header-brand">
+            <h1><i class="fa-solid fa-flask-vial brand-ico" aria-hidden="true"></i>Strategy Validation</h1>
+            <div class="header-meta">
+                <span class="status-inline" id="statusChip" title="Proxy connection">
+                    <span class="status-dot" id="statusDot"></span><span id="statusText">Checking…</span>
+                </span>
+                <span class="header-sub">Backtest Lab</span>
+            </div>
         </div>
+        <a class="icon-btn" id="dashLink" href="dashboard.html"
+           aria-label="Back to Dashboard" title="Back to Dashboard">
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Dashboard
+        </a>
     </header>
 
     <div class="wrap">
         <!-- Controls -->
         <div class="controls" role="group" aria-label="Backtest parameters">
-            <div class="field">
+            <div class="field symbol-field">
                 <label for="symbolSelect">Symbol</label>
-                <select id="symbolSelect"></select>
+                <div class="select-wrap">
+                    <span class="sym-ico" aria-hidden="true"><i class="fa-solid fa-coins"></i></span>
+                    <select id="symbolSelect"></select>
+                </div>
             </div>
-            <div class="field">
+            <div class="field interval-field">
                 <label for="intervalSelect">Interval</label>
                 <select id="intervalSelect">
                     <option value="1">1m</option>
@@ -310,12 +346,12 @@
                     <option value="D" selected>D</option>
                 </select>
             </div>
-            <div class="field">
+            <div class="field profile-field">
                 <label for="profileSelect">Strategy Profile</label>
                 <select id="profileSelect"></select>
             </div>
-            <button type="button" class="run-btn" id="runBtn">
-                <i class="fa-solid fa-play" aria-hidden="true"></i> Run Validation
+            <button type="button" class="run-btn" id="runBtn" aria-label="Run Validation" title="Run Validation">
+                <i class="fa-solid fa-play" aria-hidden="true"></i> <span class="run-label">Run Validation</span>
             </button>
         </div>
 
@@ -473,7 +509,7 @@
             Object.keys(symbols).forEach(function (key) {
                 var o = document.createElement('option');
                 o.value = key;
-                o.textContent = (symbols[key].td || key) + '  (' + (symbols[key].class || '?') + ')';
+                o.textContent = String(symbols[key].td || key).replace(/\s*\/\s*/g, ' / ');
                 symSel.appendChild(o);
             });
             var profSel = $('profileSelect');
