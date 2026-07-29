@@ -94,8 +94,8 @@ T.test('pivot rows are coloured like S/R (resistance bear, support bull)', funct
 T.suite('Phase 11 — Live Price CSS hook & ticker stability');
 
 T.test('the Live Price block carries a descriptive class', function () {
-    T.ok(/keeneye-live-price/.test(CARD_JS), 'qt-card applies the keeneye-live-price class');
-    T.ok(/qtw-live-quote-wrap keeneye-live-price/.test(CARD_JS),
+    T.ok(/keen-live-price/.test(CARD_JS), 'qt-card applies the keen-live-price class');
+    T.ok(/qtw-live-quote-wrap keen-live-price/.test(CARD_JS),
          'the descriptive class sits alongside the structural qtw- class (not a replacement)');
 });
 
@@ -111,7 +111,7 @@ T.test('the ticker tape is re-mounted on return to the Charts workspace', functi
 
 T.suite('Phase 11 — Navigation: brand-home & same-page in-app links');
 
-T.test('the Keen Eye brand is an accessible control that jumps to Charts', function () {
+T.test('the KEEN brand is an accessible control that jumps to Charts', function () {
     T.ok(/id="brandHome"[^>]*role="button"/.test(DASHBOARD_HTML), 'brand h1 exposes role="button"');
     T.ok(/id="brandHome"[^>]*tabindex="0"/.test(DASHBOARD_HTML), 'brand is keyboard-focusable');
     // Match the whole function body up to its closing brace. Inner blocks close

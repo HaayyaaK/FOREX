@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Strategy Validation</title>
+    <meta name="theme-color" content="#0f0f1a">
+    <!-- Installable PWA metadata + favicons (locally hosted), single unified
+         source shared with dashboard.html / calc.html / disclaimer.html. -->
+    <link rel="manifest" href="assets/site.webmanifest">
+    <link rel="icon" href="assets/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
     <!-- Locally hosted FontAwesome 7. No CDN. -->
     <link rel="stylesheet" href="assets/fontawesome-free-7.3.1-web/css/all.min.css">
     <style>
@@ -134,15 +142,17 @@
         .icon-btn:hover { background: var(--c-elevated); border-color: var(--c-border-hover); }
         .icon-btn i { color: var(--c-brand-1); }
 
-        /* Back-to-Dashboard is a primary action — styled like .run-btn (gradient,
-           white text, bold) so it reads as the page's main navigation control. */
-        #dashLink {
+        /* Primary header action (e.g. Back to Dashboard) — gradient, white text,
+           bold, with a soft shadow so it reads as the page's main navigation
+           control. Shared verbatim with calc.html / disclaimer.html so every
+           page's header CTA has identical dimensions, color and shadow. */
+        .icon-btn.btn-primary {
             background: var(--grad-action); border: none; color: #fff; font-weight: 600;
             padding: 0 var(--sp-4); box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
             margin-left: auto; flex: none;
         }
-        #dashLink:hover { background: var(--grad-action); border: none; filter: brightness(1.1); }
-        #dashLink i { color: #fff; }
+        .icon-btn.btn-primary:hover { background: var(--grad-action); border: none; filter: brightness(1.1); }
+        .icon-btn.btn-primary i { color: #fff; }
 
         /* ---------------- Layout ---------------- */
         .wrap { padding: var(--sp-4) var(--sp-5); max-width: 1500px; margin: 0 auto; }
@@ -274,7 +284,7 @@
             /* Title on line 1 (with Dashboard); status dot + subtitle drop to line 2. */
             .header-brand { flex-direction: column; align-items: flex-start; gap: 3px; }
             .header-meta { gap: var(--sp-2); }
-            #dashLink { align-self: flex-start; }
+            .icon-btn.btn-primary { align-self: flex-start; }
             .wrap { padding: var(--sp-4); }
             /* Collapse the 2-row control block into one compact row. */
             .controls { flex-wrap: nowrap; align-items: flex-end; gap: var(--sp-2); padding: var(--sp-3); }
@@ -321,7 +331,7 @@
                 <span class="header-sub">Backtest Lab</span>
             </div>
         </div>
-        <a class="icon-btn" id="dashLink" href="dashboard.html"
+        <a class="icon-btn btn-primary" id="dashLink" href="dashboard.html"
            aria-label="Back to Dashboard" title="Back to Dashboard">
             <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Dashboard
         </a>
@@ -367,20 +377,20 @@
                performance, an equity curve, walk-forward stability and a Monte-Carlo distribution.</p>
         </div>
 
-        <div class="state hidden" id="loadingState">
+        <div class="state hidden" id="loadingState" role="status" aria-live="polite">
             <div class="spinner" aria-hidden="true"></div>
             <h2>Running backtest…</h2>
             <p id="loadingDetail">Fetching history through the proxy and replaying the engine bar-by-bar.</p>
         </div>
 
-        <div class="state error hidden" id="errorState">
+        <div class="state error hidden" id="errorState" role="status" aria-live="polite">
             <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
             <h2 id="errorTitle">Validation failed</h2>
             <p id="errorDetail"></p>
         </div>
 
         <!-- Results -->
-        <div id="results" class="hidden">
+        <div id="results" class="hidden" role="status" aria-live="polite">
             <div class="card">
                 <div class="card-title">
                     <i class="fa-solid fa-chart-simple" aria-hidden="true"></i> Performance Summary

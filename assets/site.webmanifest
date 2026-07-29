@@ -1,6 +1,6 @@
 {
-  "name": "Keen Eye — Live Market Dashboard",
-  "short_name": "Keen Eye",
+  "name": "KEEN — Live Market Dashboard",
+  "short_name": "KEEN",
   "description": "Live market charts and deterministic quantitative analysis for forex, metals and crypto.",
   "start_url": "/dashboard.html",
   "scope": "/",
@@ -11,6 +11,7 @@
   "lang": "en",
   "dir": "ltr",
   "categories": ["finance", "business", "productivity"],
+  "copyright": "© 2025 hayyaak.com",
   "icons": [
     {
       "src": "/assets/favicon-16x16.png",

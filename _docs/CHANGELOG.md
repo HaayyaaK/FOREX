@@ -35,13 +35,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/); dates are IS
 - Migrated the chart from the deprecated `tv.js` widget to the maintained `embed-widget-advanced-chart.js` pipeline; added a ticker-tape re-mount watchdog and moved the ticker bar to the bottom.
 - Replaced all emoji/CDN icons with locally hosted FontAwesome 7; WCAG-AA brand/action palette; Save-Profile toggle gating all settings persistence.
 - Enabled the IIS ARR reverse proxy and fixed the URL-rewrite rule so same-origin `/api/*` reaches the gateway; `qt-app.js` resolves the proxy same-origin on the public domain.
-- Rebuilt the Keen Eye card system into four colour-coded data-type families with a proportional Key Levels ladder; added the hero executive summary and the display-only live-quote embed.
+- Rebuilt the KEEN card system into four colour-coded data-type families with a proportional Key Levels ladder; added the hero executive summary and the display-only live-quote embed.
 
 ## 2026-07-23 — Initial platform
 
 ### Added
 - Deterministic quantitative trading engine — 18 `QT.*` modules (indicators → patterns → trend → risk → scoring → recommendation), MTF consensus, capability-aware renormalisation. No build step, no runtime dependencies.
 - Backtesting subsystem (`backtest/qt-backtest.js`) — candle-by-candle replay with adversarially-verified no-future-leak, walk-forward IS/OOS, Sharpe/Sortino/PF/expectancy/MAE/MFE, seeded Monte-Carlo.
-- Presentation layer (`dashboard.html`, `engine/qt-card.js`) — two workspaces (Charts / Keen Eye), Trader/Analyst modes, session persistence, accessibility, responsive.
+- Presentation layer (`dashboard.html`, `engine/qt-card.js`) — two workspaces (Charts / KEEN), Trader/Analyst modes, session persistence, accessibility, responsive.
 - Phase 1–9 test suites; indicator cross-validation (30/30 vs an external oracle on 600 real BTC/USD bars).
 - Locally hosted assets; `web.config` for IIS + Cloudflare Tunnel hosting.

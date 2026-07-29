@@ -137,7 +137,7 @@ T.test('renders the hero, executive summary and all eight L2 cards', function ()
     T.equal(host().querySelectorAll('.qtw-hero').length, 1, 'exactly one hero');
 });
 
-// Supersedes "every card is a native <details>/<summary>". After the Keen Eye
+// Supersedes "every card is a native <details>/<summary>". After the KEEN
 // rebuild only two panels still collapse — everything decision-relevant is
 // always visible, with no caret and nothing to click. See qt-card.js's
 // staticCard()/familyCard() vs section() split.
@@ -1024,7 +1024,7 @@ T.test('dashboard chrome text tokens are unified across pages and WCAG-AA safe',
          'chart chrome still references the --c-text-faint token');
 });
 
-T.suite('Phase 8.6 — Two-workspace layout (Charts / Keen Eye)');
+T.suite('Phase 8.6 — Two-workspace layout (Charts / KEEN)');
 
 /* The workspace shell lives in dashboard.html's markup + inline script and is
    driven by TradingView/ResizeObserver, which don't run under JSDOM. Consistent
@@ -1041,7 +1041,7 @@ T.test('the app shell pins itself to the viewport (no page scroll)', function ()
 T.test('both workspace panels exist and are toggled by a single data-workspace attribute', function () {
     T.ok(/id="app"[^>]*data-workspace="charts"/.test(DASHBOARD_HTML), 'default workspace is Charts');
     T.ok(/id="wsPanelCharts"/.test(DASHBOARD_HTML), 'Charts panel present');
-    T.ok(/id="wsPanelKEEN"/.test(DASHBOARD_HTML), 'Keen Eye panel present');
+    T.ok(/id="wsPanelKEEN"/.test(DASHBOARD_HTML), 'KEEN panel present');
     T.ok(/\.workspace\s*\{[^}]*display:\s*none/.test(DASHBOARD_HTML), 'workspaces hidden by default, shown when active');
     T.ok(/\.app\[data-workspace=["']charts["']\]\s*#wsPanelCharts\s*\{\s*display:\s*flex/.test(DASHBOARD_HTML),
          'Charts panel shown only when data-workspace=charts');
@@ -1049,13 +1049,13 @@ T.test('both workspace panels exist and are toggled by a single data-workspace a
          'KEEN panel shown only when data-workspace=KEEN');
 });
 
-T.test('the chart lives in Charts, the analysis card lives in Keen Eye', function () {
+T.test('the chart lives in Charts, the analysis card lives in KEEN', function () {
     var charts = DASHBOARD_HTML.indexOf('id="wsPanelCharts"');
-    var keeneye = DASHBOARD_HTML.indexOf('id="wsPanelKEEN"');
+    var keenIdx = DASHBOARD_HTML.indexOf('id="wsPanelKEEN"');
     var chartHost = DASHBOARD_HTML.indexOf('id="chartHost"');
     var analysisCard = DASHBOARD_HTML.indexOf('id="analysisCard"');
-    T.ok(charts < chartHost && chartHost < keeneye, 'chartHost is inside the Charts panel');
-    T.ok(keeneye < analysisCard, 'analysisCard is inside the Keen Eye panel');
+    T.ok(charts < chartHost && chartHost < keenIdx, 'chartHost is inside the Charts panel');
+    T.ok(keenIdx < analysisCard, 'analysisCard is inside the KEEN panel');
 });
 
 T.test('a single-icon toggle button switches workspaces, accessibly', function () {
@@ -1088,7 +1088,7 @@ T.test('both switchers coexist — the workspace toggle AND the Trader/Analyst t
 });
 
 T.test('content regions scroll internally, never the page', function () {
-    T.ok(/\.analysis-scroll\s*\{[^}]*overflow-y:\s*auto/.test(DASHBOARD_HTML), 'Keen Eye analysis scrolls internally');
+    T.ok(/\.analysis-scroll\s*\{[^}]*overflow-y:\s*auto/.test(DASHBOARD_HTML), 'KEEN analysis scrolls internally');
     T.ok(/body\s*\{[^}]*overflow:\s*hidden/.test(DASHBOARD_HTML), 'the page (body) itself never scrolls');
 });
 
@@ -1112,9 +1112,9 @@ T.test('workspace switching is presentation-only — no engine calls, persisted 
         .forEach(function (c) { T.ok(body[0].indexOf(c) === -1, 'setWorkspace does not call ' + c); });
 });
 
-T.test('clicking Analyze surfaces Keen Eye and reflects real connection state only', function () {
+T.test('clicking Analyze surfaces KEEN and reflects real connection state only', function () {
     var inline = DASHBOARD_HTML.match(/<script>\s*'use strict';[\s\S]*?<\/script>/)[0];
-    T.ok(/setWorkspace\(["']KEEN["']\)/.test(inline), 'Analyze switches to Keen Eye so results are visible');
+    T.ok(/setWorkspace\(["']KEEN["']\)/.test(inline), 'Analyze switches to KEEN so results are visible');
     T.ok(/setConn\('loading'/.test(inline) && /setConn\('ok'/.test(inline) && /setConn\('error'/.test(inline),
          'connection indicator reflects loading/ok/error — all derived from the real run() outcome');
 });
@@ -1168,15 +1168,15 @@ T.test('the workspace and analysis-mode were already persisted (unchanged, still
     T.ok(/QT\.card\.getMode\(\)/.test(INLINE), 'analysis mode read from persisted state');
 });
 
-T.test('Keen Eye shows a welcoming empty state before any analysis', function () {
+T.test('KEEN shows a welcoming empty state before any analysis', function () {
     var cardStart = DASHBOARD_HTML.indexOf('id="analysisCard"');
     var cardChunk = DASHBOARD_HTML.slice(cardStart, cardStart + 600);
     T.ok(/class="qtw-empty"/.test(cardChunk), 'placeholder empty-state inside the analysis card');
     T.ok(/Analyze/.test(cardChunk), 'the empty state tells the user to press Analyze');
-    // It must live in Keen Eye, and the renderer clears it on first analysis
+    // It must live in KEEN, and the renderer clears it on first analysis
     // (proven functionally by the existing re-render test that replaces content).
-    var keeneye = DASHBOARD_HTML.indexOf('id="wsPanelKEEN"');
-    T.ok(keeneye !== -1 && keeneye < cardStart, 'empty state is inside the Keen Eye workspace');
+    var keenIdx = DASHBOARD_HTML.indexOf('id="wsPanelKEEN"');
+    T.ok(keenIdx !== -1 && keenIdx < cardStart, 'empty state is inside the KEEN workspace');
 });
 
 T.test('the empty state is styled as a centered, readable panel (not bare text)', function () {

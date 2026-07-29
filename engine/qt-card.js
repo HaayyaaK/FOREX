@@ -720,9 +720,9 @@
         // "reference only" label says so directly: this never feeds the R:R,
         // the gates, or any other calculation on the page.
         if (ctx && ctx.tvSymbol) {
-            // `keeneye-live-price` is a stable, descriptive hook for CSS/theming
+            // `keen-live-price` is a stable, descriptive hook for CSS/theming
             // of the Live Price block, alongside the structural qtw-* classes.
-            var quoteWrap = h('div', { class: 'qtw-live-quote-wrap keeneye-live-price' });
+            var quoteWrap = h('div', { class: 'qtw-live-quote-wrap keen-live-price' });
             quoteWrap.appendChild(h('div', { class: 'qtw-live-quote-label' }, [
                 h('span', { class: 'qtw-live-dot', 'aria-hidden': 'true' }),
                 h('span', { text: 'Live Price' }),
