@@ -258,7 +258,7 @@
      *   Bearish FVG at i: high[i] < low[i-2]      gap = low[i-2] − high[i]
      *   Gap must be >= fvgMinAtrMultiple × ATR to exclude trivial imbalances.
      *
-     * Canonical ICT definition — see RESEARCH-SYNTHESIS.md Conflict 5, where D3's
+     * Canonical ICT definition — see _docs/MEGA.md (§ Research Synthesis & Conflict Resolution, Conflict 5), where D3's
      * looser wording is deliberately overridden.
      * ================================================================ */
     S.fairValueGap = function (ctx) {

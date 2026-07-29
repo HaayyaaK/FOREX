@@ -4,7 +4,7 @@
  * The analysis engine reads from this object and never hard-codes a threshold.
  * Changing the trading strategy means editing this file only.
  *
- * Citations refer to RESEARCH-SYNTHESIS.md and the source documents:
+ * Citations refer to _docs/MEGA.md (§ Research Synthesis & Conflict Resolution) and the source documents:
  *   D1 = Indicators_Setup_Inputs_Signs_Patterns_for_each_trading_pair.md
  *   D2 = High Win Rate BTC Trading Setups for Professional Traders.md   (peer-reviewed)
  *   D3 = High Win Rate BTC-USD Trading Setups for Professional Traders.md

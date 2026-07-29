@@ -8,7 +8,7 @@
  *                          future edit that changes a calculation fails loudly.
  *
  * Cross-validation against the `technicalindicators` package (30/30 series matched)
- * is documented in VALIDATION.md; that library is a test oracle only and is never
+ * is documented in _docs/MEGA.md (§ Indicator Validation Report); that library is a test oracle only and is never
  * shipped, so this suite stays dependency-free.
  */
 'use strict';

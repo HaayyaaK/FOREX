@@ -9,7 +9,7 @@
  * CALIBRATION NOTE (kept deliberately separate from the engine):
  * every number below is a calibration assumption, not a mathematical constant.
  * The evidence-category weights start from the research priors documented in
- * RESEARCH-SYNTHESIS.md §3.1 and are expected to be re-optimised once the full
+ * _docs/MEGA.md (§ Research Synthesis & Conflict Resolution, §3.1) and are expected to be re-optimised once the full
  * pipeline can be back-tested end to end. Nothing in the engine breaks if these
  * change; only the resulting scores move.
  */
@@ -48,7 +48,7 @@
         balanced: {
             id: 'balanced',
             name: 'Balanced',
-            description: 'Default profile. Weights follow RESEARCH-SYNTHESIS.md §3.1 ' +
+            description: 'Default profile. Weights follow the research synthesis (_docs/MEGA.md §3.1) ' +
                          'with regime-conditioned oscillators and Donchian promoted.',
             categoryWeights: {
                 trend: 0.26, structure: 0.24, momentum: 0.16, pattern: 0.18, sentiment: 0.06,

@@ -4,7 +4,7 @@
  * Wires the Analyze button to: proxy fetch → engine pipeline → card render.
  * Contains no analytical logic; it sequences calls and handles UI state only.
  *
- * All market data flows through the proxy (see PROXY-REVIEW.md). The browser
+ * All market data flows through the proxy (see _docs/MEGA.md, § Backend Review). The browser
  * never holds an API key and never contacts a data provider directly.
  */
 (function (root) {

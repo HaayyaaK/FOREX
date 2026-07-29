@@ -67,7 +67,7 @@ npm test                    # 1276 assertions across 9 phases
 cd C:\trading-proxy && npm test   # 21 proxy assertions
 ```
 
-Indicators are cross-validated against the `technicalindicators` npm package — **30/30 series matched** on 600 real BTC/USD daily bars (`VALIDATION.md`). That library is a test oracle only and is never shipped.
+Indicators are cross-validated against the `technicalindicators` npm package — **30/30 series matched** on 600 real BTC/USD daily bars (`_docs/MEGA.md`, § Indicator Validation Report). That library is a test oracle only and is never shipped.
 
 ---
 
@@ -96,7 +96,7 @@ Without ARR the dashboard still works — point the browser at `:3001` directly 
 Only IIS (80/443) needs to be reachable. The gateway binds `127.0.0.1:3001` and should **not** be exposed directly.
 
 ### 🔴 Before exposing publicly
-**The gateway has no authentication.** Anyone who reaches the hostname can consume your API quota. This is the top-priority task for the next session (see `PROJECT-ROADMAP.md` §7, task C1). Until then, keep the tunnel private or restrict it with Cloudflare Access.
+**The gateway has no authentication.** Anyone who reaches the hostname can consume your API quota. This is the top-priority task for the next session (see `_docs/MEGA.md` § Project Roadmap & Status, §7, task C1). Until then, keep the tunnel private or restrict it with Cloudflare Access.
 
 ### Rollback
 The project is stateless — no database, no migrations. Roll back by restoring the previous folder and restarting the gateway. Caches are in-memory and rebuild automatically.
@@ -119,14 +119,18 @@ The project is stateless — no database, no migrations. Roll back by restoring 
 
 ## Documentation
 
-| File | Purpose |
+All project documentation is consolidated into one file:
+**[`_docs/MEGA.md`](_docs/MEGA.md)**. Find a topic by searching for its
+`#`/`##` heading below.
+
+| Heading in `_docs/MEGA.md` | Purpose |
 |---|---|
-| **`PROJECT-ROADMAP.md`** | **Start here** — status, tasks, next-session bootstrap |
-| `RESEARCH-SYNTHESIS.md` | Research conflicts and resolutions — the functional spec |
-| `VALIDATION.md` | Indicator cross-validation evidence |
-| `PRODUCTION-READINESS.md` | Readiness assessment; §12 covers MTF consensus |
-| `IMPLEMENTATION-NOTES.md` | Change log + Architecture Evolution |
-| `PROXY-REVIEW.md` | Original backend audit |
+| **`# Project Roadmap & Status`** | **Start here** — status, tasks, next-session bootstrap |
+| `# Research Synthesis & Conflict Resolution` | Research conflicts and resolutions — the functional spec |
+| `# Indicator Validation Report` | Indicator cross-validation evidence |
+| `# Production Readiness Report` | Readiness assessment; §12 covers MTF consensus |
+| `# Implementation Notes` | Change log + Architecture Evolution |
+| `# Backend Review` | Original backend audit |
 
 ---
 
@@ -162,4 +166,4 @@ The card system was rebuilt from scratch (`engine/qt-card.js`, `dashboard.html`)
 
 **~78% complete.** Analytical engine and backtesting framework are finished and verified. Outstanding: proxy authentication (blocks public deployment), provider-failover testing, Strategy Validation Dashboard, and statistically significant backtesting.
 
-See `PROJECT-ROADMAP.md` for the prioritised task list.
+See `_docs/MEGA.md` (§ Project Roadmap & Status) for the prioritised task list.
