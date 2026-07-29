@@ -1012,12 +1012,16 @@ T.test('low-emphasis workstation text meets WCAG AA contrast (>=4.5:1) on every 
     });
 });
 
-T.test('the pre-existing dashboard chrome colors were left untouched (scoped fix, no regression)', function () {
+T.test('dashboard chrome text tokens are unified across pages and WCAG-AA safe', function () {
+    // Unified style pass: the global chrome faint/muted tokens now match
+    // calc/validation/disclaimer AND clear 4.5:1 on the dark shell. The old
+    // #6a6a8a/#7b7b96 were dimmer than the other pages and #6a6a8a failed AA
+    // (~3.66:1 on --c-bg), so .chart-message text is now compliant too.
     var html = fs.readFileSync(path.join(__dirname, '..', 'dashboard.html'), 'utf8');
-    T.ok(/--c-text-faint:\s*#6a6a8a/.test(html), 'original --c-text-faint value unchanged');
-    T.ok(/--c-text-muted:\s*#7b7b96/.test(html), 'original --c-text-muted value unchanged');
+    T.ok(/--c-text-faint:\s*#8a8ab2/.test(html), '--c-text-faint unified to the shared #8a8ab2');
+    T.ok(/--c-text-muted:\s*#8a8aa4/.test(html), '--c-text-muted unified to the shared #8a8aa4');
     T.ok(/\.chart-message\s*\{[^}]*color:\s*var\(--c-text-faint\)/.test(html),
-         'pre-existing chrome still references the original --c-text-faint token');
+         'chart chrome still references the --c-text-faint token');
 });
 
 T.suite('Phase 8.6 — Two-workspace layout (Charts / Keen Eye)');
